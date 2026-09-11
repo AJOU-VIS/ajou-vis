@@ -1,0 +1,43 @@
+# --- secrets ---
+.env
+.env.*
+*.key
+secrets/
+
+# --- character assets (홍보실 약속: 레포에 미포함) ---
+assets/character/
+*.psd
+*.ai
+
+# --- audio / data (Drive에서 관리) ---
+*.wav
+*.mp3
+*.m4a
+*.flac
+recordings/
+data/raw/
+
+# --- models / vector db ---
+*.gguf
+*.onnx
+*.pt
+*.safetensors
+chroma_db/
+models/
+
+# --- python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# --- node ---
+node_modules/
+dist/
+
+# --- os / editor ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
