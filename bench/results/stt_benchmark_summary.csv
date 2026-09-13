@@ -1,0 +1,6 @@
+모델,GPU,상태,평균 CER,평균 추론(s),평균 TTFT(s),RTF,모델 로드(s),GPU 메모리(MB)
+faster-whisper-small,Tesla T4,ok,0.0867,0.181,0.181,0.04,5.9,590
+faster-whisper-medium,Tesla T4,ok,0.0571,0.379,0.379,0.084,14.2,1674
+faster-whisper-large-v3-turbo,Tesla T4,ok,0.0366,0.354,0.354,0.079,12.6,1706
+whisper-large-v3-turbo,Tesla T4,ok,0.0283,0.264,0.264,0.059,45.4,1814
+qwen3-asr,Tesla T4,ok,0.0641,0.866,0.866,0.19,29.9,1568
