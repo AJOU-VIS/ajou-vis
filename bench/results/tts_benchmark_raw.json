@@ -1,0 +1,105 @@
+{
+  "gpu": "Tesla T4",
+  "sentences": {
+    "ko_greeting": "안녕하세요, 저는 아주대 안내 가이드 치토예요! 학사, 행정, 캠퍼스 뭐든 물어봐요.",
+    "ko_citation": "학사요람 졸업요건에 따르면 소프트웨어학과는 2024학번 기준 졸업까지 140학점이 필요해요.",
+    "ko_numbers": "수강신청 정정 기간은 개강 후 첫 주이고, 최대 19학점까지 신청할 수 있어요.",
+    "ko_deferral": "음, 그건 제가 가진 자료로는 확실하지 않아요. 정확한 건 학사지원팀에 확인해보는 게 좋아요!",
+    "en_sample": "According to the Academic Handbook, 2024-entry Software students need 140 credits to graduate."
+  },
+  "results": [
+    {
+      "quant": "BF16",
+      "status": "ok",
+      "load_time_s": 6.122947513000327,
+      "gpu_mem_mb": 4972.0,
+      "gpu": "Tesla T4",
+      "sentences": [
+        {
+          "key": "ko_greeting",
+          "seconds": 3.2417818399999305,
+          "ttfc": 0.2060150990000693,
+          "audio_seconds": 6.976,
+          "wav": "tts_samples/BF16_ko_greeting.wav"
+        },
+        {
+          "key": "ko_citation",
+          "seconds": 3.798422987999402,
+          "ttfc": 0.2080863049995969,
+          "audio_seconds": 8.32,
+          "wav": "tts_samples/BF16_ko_citation.wav"
+        },
+        {
+          "key": "ko_numbers",
+          "seconds": 2.821287289000793,
+          "ttfc": 0.20160312600000907,
+          "audio_seconds": 6.08,
+          "wav": "tts_samples/BF16_ko_numbers.wav"
+        },
+        {
+          "key": "ko_deferral",
+          "seconds": 3.7303646420004952,
+          "ttfc": 0.20235683300052187,
+          "audio_seconds": 8.0,
+          "wav": "tts_samples/BF16_ko_deferral.wav"
+        },
+        {
+          "key": "en_sample",
+          "seconds": 4.706255993999548,
+          "ttfc": 0.20257786399997713,
+          "audio_seconds": 10.336,
+          "wav": "tts_samples/BF16_en_sample.wav"
+        }
+      ]
+    },
+    {
+      "quant": "Q8_0",
+      "status": "ok",
+      "load_time_s": 9.681372793000264,
+      "gpu_mem_mb": 3200.0,
+      "gpu": "Tesla T4",
+      "sentences": [
+        {
+          "key": "ko_greeting",
+          "seconds": 2.1023364699995,
+          "ttfc": 0.09195632399951137,
+          "audio_seconds": 6.976,
+          "wav": "tts_samples/Q8_0_ko_greeting.wav"
+        },
+        {
+          "key": "ko_citation",
+          "seconds": 2.266131564999341,
+          "ttfc": 0.09525785899950279,
+          "audio_seconds": 7.52,
+          "wav": "tts_samples/Q8_0_ko_citation.wav"
+        },
+        {
+          "key": "ko_numbers",
+          "seconds": 1.9757409399999233,
+          "ttfc": 0.0912750320003397,
+          "audio_seconds": 6.24,
+          "wav": "tts_samples/Q8_0_ko_numbers.wav"
+        },
+        {
+          "key": "ko_deferral",
+          "seconds": 2.4133735309997064,
+          "ttfc": 0.0986536549999073,
+          "audio_seconds": 7.68,
+          "wav": "tts_samples/Q8_0_ko_deferral.wav"
+        },
+        {
+          "key": "en_sample",
+          "seconds": 2.043526166999982,
+          "ttfc": 0.09115291199941566,
+          "audio_seconds": 6.72,
+          "wav": "tts_samples/Q8_0_en_sample.wav"
+        }
+      ]
+    },
+    {
+      "quant": "Q4_K_M",
+      "status": "failed",
+      "error": "process exited with code -6 (native crash)"
+    }
+  ]
+}
