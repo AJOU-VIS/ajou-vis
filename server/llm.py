@@ -24,7 +24,7 @@ def _get_client() -> anthropic.Anthropic:
     return _client
 
 
-def chat(system: str, user: str, max_tokens: int = 300) -> str:
+def _build_kwargs(system: str, user: str, max_tokens: int) -> dict:
     kwargs: dict = {
         "model": MODEL,
         "max_tokens": max_tokens,
@@ -33,8 +33,18 @@ def chat(system: str, user: str, max_tokens: int = 300) -> str:
     }
     if system:
         kwargs["system"] = system
+    return kwargs
 
-    resp = _get_client().messages.create(**kwargs)
+
+def chat_stream(system: str, user: str, max_tokens: int = 300):
+    """답변 텍스트를 토큰 단위로 yield — 음성 파이프라인이 첫 문장부터 TTS를 시작할 수 있게."""
+    with _get_client().messages.stream(**_build_kwargs(system, user, max_tokens)) as stream:
+        for text in stream.text_stream:
+            yield text
+
+
+def chat(system: str, user: str, max_tokens: int = 300) -> str:
+    resp = _get_client().messages.create(**_build_kwargs(system, user, max_tokens))
 
     # 안전 분류기가 거부하면 content가 비어 있을 수 있으므로 먼저 확인
     if resp.stop_reason == "refusal":
