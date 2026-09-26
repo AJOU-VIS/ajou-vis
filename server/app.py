@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import time
 import uuid
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -20,10 +21,13 @@ import gate
 import llm
 import prompts_loader
 import rewriter
-from rag import StubRetriever, format_context
+from rag import ChromaRetriever, StubRetriever, format_context
 
 app = FastAPI(title="AJOU-VIS RAG Server")
-retriever = StubRetriever()  # 태연님 ChromaDB Retriever로 교체 지점
+
+# corpus/chroma_db가 구축되어 있으면 실제 검색, 없으면 스텁(전부 보류 응답)
+_CHROMA_DIR = Path(__file__).resolve().parent.parent / "corpus" / "chroma_db"
+retriever = ChromaRetriever(_CHROMA_DIR) if _CHROMA_DIR.exists() else StubRetriever()
 
 MAX_HISTORY_TURNS = 3  # 계약 ④: 최근 2~3턴만
 

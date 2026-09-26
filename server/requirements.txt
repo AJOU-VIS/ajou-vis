@@ -4,3 +4,7 @@ httpx>=0.27
 pydantic>=2.6
 anthropic>=0.40
 python-dotenv>=1.0
+# RAG 검색 (corpus/chroma_db — embed_corpus.py와 동일 스택)
+chromadb>=0.5
+sentence-transformers>=3.0
+langchain-text-splitters>=0.2

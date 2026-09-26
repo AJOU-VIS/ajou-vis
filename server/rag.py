@@ -23,10 +23,55 @@ class Retriever(Protocol):
 
 
 class StubRetriever:
-    """ChromaDB 연결 전 자리표시자 — 항상 빈 결과."""
+    """ChromaDB 미구축 시 자리표시자 — 항상 빈 결과."""
 
     def search(self, question: str, top_k: int = 5) -> list[SearchHit]:
         return []
+
+
+class ChromaRetriever:
+    """corpus/chroma_db 규정 벡터 저장소 검색 (embed_corpus.py가 구축, BGE-M3).
+
+    임베딩 모델(~2GB)은 첫 검색 때 지연 로드한다 — 서버 기동과 테스트를
+    느리게 만들지 않기 위해서. 로드 후에는 메모리에 유지된다.
+    """
+
+    COLLECTION = "ajou_regulations"
+    MODEL_NAME = "BAAI/bge-m3"  # embed_corpus.py와 반드시 동일해야 함
+
+    def __init__(self, db_dir):
+        self._db_dir = str(db_dir)
+        self._model = None
+        self._collection = None
+
+    def _ensure_loaded(self):
+        if self._model is None:
+            import chromadb
+            from sentence_transformers import SentenceTransformer
+
+            self._model = SentenceTransformer(self.MODEL_NAME)
+            client = chromadb.PersistentClient(path=self._db_dir)
+            self._collection = client.get_collection(self.COLLECTION)
+
+    def search(self, question: str, top_k: int = 5) -> list[SearchHit]:
+        self._ensure_loaded()
+        embedding = self._model.encode([question], normalize_embeddings=True)[0].tolist()
+        res = self._collection.query(query_embeddings=[embedding], n_results=top_k)
+
+        hits = []
+        for doc, meta, dist in zip(
+            res["documents"][0], res["metadatas"][0], res["distances"][0]
+        ):
+            # 정규화 벡터의 제곱 L2 거리 → 코사인 유사도 (cos = 1 - d/2).
+            # gate.py의 임계값 판단이 이 점수를 사용한다 (계약 ①·②).
+            score = max(0.0, 1.0 - dist / 2)
+            hits.append(SearchHit(
+                source_name=meta["rule_name"],
+                article=f"{meta['article_no']}({meta['article_title']})",
+                text=doc,
+                score=score,
+            ))
+        return hits
 
 
 def format_context(hits: list[SearchHit]) -> str:

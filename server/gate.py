@@ -10,7 +10,7 @@ import os
 
 from rag import SearchHit
 
-SCORE_THRESHOLD = float(os.environ.get("GATE_SCORE_THRESHOLD", "0.35"))
+SCORE_THRESHOLD = float(os.environ.get("GATE_SCORE_THRESHOLD", "0.5"))
 
 # 페르소나의 보류 멘트 (prompts/persona_ko.md · persona_en.md 응답 톤 샘플)
 DEFERRAL = {

@@ -51,13 +51,14 @@ speech-to-speech local ... \
 | `gate.py` | 신뢰도 게이트 + 정형 보류 응답 | ① 이중 강제 |
 | `llm.py` | 상위 LLM(OpenAI 호환 API) 클라이언트 | |
 
-## 태연님 연결 지점 (rag.py)
+## RAG 검색 (rag.py)
 
-`Retriever.search(question) -> list[SearchHit]`만 구현하면 된다.
-`SearchHit(source_name, article, text, score)` — source_name은 소리내 읽기 자연스러운
-문서명(예: "아주대학교 학칙"), score는 게이트 임계값 판단에 사용(계약 ②).
-현재는 `StubRetriever`가 빈 결과를 반환 → 게이트가 전부 보류 응답으로 처리한다
-(= RAG 연결 전에도 서버가 무근거 답변을 하지 않음을 보장).
+`ChromaRetriever`가 `corpus/chroma_db`(embed_corpus.py가 구축, BGE-M3)를 검색한다.
+DB가 없으면 자동으로 `StubRetriever`(빈 결과 → 전부 보류 응답)로 동작하므로,
+서버를 처음 쓰는 팀원은 먼저 `corpus/scripts/embed_corpus.py`를 실행해 DB를 만들 것.
+점수는 정규화 임베딩의 L2 거리를 코사인 유사도로 변환한 값(0~1)이며
+게이트 임계값(GATE_SCORE_THRESHOLD) 판단에 쓰인다. 임베딩 모델(~2GB)은
+첫 검색 시 지연 로드된다.
 
 ## 미정/후속
 
