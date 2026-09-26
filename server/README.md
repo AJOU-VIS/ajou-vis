@@ -23,9 +23,12 @@ POST /v1/chat/completions (파이프라인이 호출)
 ```bash
 cd server
 pip install -r requirements.txt
-cp .env.example .env   # LLM API 설정 입력
+cp .env.example .env   # ANTHROPIC_API_KEY 입력 (키는 절대 커밋 금지)
 uvicorn app:app --port 8100
 ```
+
+상위 LLM은 Anthropic Claude(공식 SDK)를 사용한다. 기본 모델 `claude-opus-5`,
+음성 지연을 고려해 effort 기본 `low` — `.env`에서 변경 가능.
 
 파이프라인 연결 (chat-completions 백엔드를 이 서버로):
 

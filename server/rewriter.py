@@ -17,7 +17,7 @@ def rewrite(history: str, utterance: str, llm_chat) -> tuple[str, bool]:
         return utterance, True
     prompt = prompts_loader.rewrite_prompt(history, utterance)
     # rewrite.md는 [지시]/[입력] 구조라 통째로 사용자 메시지로 보낸다
-    result = llm_chat(system="", user=prompt, max_tokens=100, temperature=0.0)
+    result = llm_chat(system="", user=prompt, max_tokens=100)
     line = result.strip().splitlines()[0].strip() if result.strip() else utterance
     if NO_SEARCH in line:
         return utterance, False

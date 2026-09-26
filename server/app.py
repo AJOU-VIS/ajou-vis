@@ -9,6 +9,10 @@ from __future__ import annotations
 import time
 import uuid
 
+from dotenv import load_dotenv
+
+load_dotenv()  # gate/llm이 import 시점에 환경변수를 읽으므로 먼저 로드
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 
@@ -97,6 +101,5 @@ def chat_completions(req: ChatRequest):
         system=prompts_loader.system_prompt(lang),
         user=user_msg,
         max_tokens=req.max_tokens or 300,
-        temperature=req.temperature if req.temperature is not None else 0.3,
     )
     return _openai_response(answer, req.model)
