@@ -41,3 +41,8 @@ dist/
 Thumbs.db
 .vscode/
 .idea/
+venv/
+__pycache__/
+.env
+corpus/chroma_db/
+output/_debug_html/
