@@ -46,3 +46,4 @@ __pycache__/
 .env
 corpus/chroma_db/
 output/_debug_html/
+output/
