@@ -26,6 +26,7 @@ import gate
 import llm
 import prompts_loader
 import rewriter
+import smalltalk
 from rag import ChromaRetriever, StubRetriever, format_context
 
 app = FastAPI(title="AJOU-VIS RAG Server")
@@ -134,6 +135,16 @@ def chat_completions(req: ChatRequest):
 
     lang = prompts_loader.detect_lang(utterance)
 
+    system = prompts_loader.system_prompt(lang)
+    max_tokens = req.max_tokens or 300
+
+    # 인사·잡담은 검색·게이트를 건너뛰고 치토가 바로 응대한다
+    if smalltalk.is_smalltalk(utterance):
+        user_msg = prompts_loader.user_turn(
+            history=history, lang=lang, question=utterance, context="",
+        ) + "\n\n" + smalltalk.NOTE.get(lang, smalltalk.NOTE["en"])
+        return _llm_respond(system, user_msg, max_tokens, req)
+
     # ④ 팔로업 재작성 → 검색 필요 여부 판정
     question, need_search = rewriter.rewrite(history, utterance, llm.chat)
 
@@ -147,9 +158,10 @@ def chat_completions(req: ChatRequest):
         history=history, lang=lang, question=question,
         context=format_context(hits),
     )
-    system = prompts_loader.system_prompt(lang)
-    max_tokens = req.max_tokens or 300
+    return _llm_respond(system, user_msg, max_tokens, req)
 
+
+def _llm_respond(system: str, user_msg: str, max_tokens: int, req: ChatRequest):
     if req.stream:
         pieces = llm.chat_stream(system=system, user=user_msg, max_tokens=max_tokens)
         return StreamingResponse(_stream_pieces(pieces, req.model),
