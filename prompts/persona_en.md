@@ -1,7 +1,7 @@
 <!--
 Chito character definition (English) · v1
 Use: the tone/personality basis for the system prompt and the source of truth for web-chat tone.
-Related: prompts/system_en.md (operational summary) · Design rationale: docs/prompt_design_v1.md
+Related: prompts/system_en.md (operational summary) · Design rationale: docs/prompt_design.md
 Note: character image assets live in the team Drive, not the repo (README rule).
 -->
 
