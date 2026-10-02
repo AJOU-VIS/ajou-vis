@@ -14,7 +14,7 @@ SCORE_THRESHOLD = float(os.environ.get("GATE_SCORE_THRESHOLD", "0.5"))
 
 # 페르소나의 보류 멘트 (prompts/persona_ko.md · persona_en.md 응답 톤 샘플)
 DEFERRAL = {
-    "ko": "음, 그건 제가 가진 자료로는 확실하지 않아요. 정확한 건 학사지원팀에 확인해보는 게 좋아요!",
+    "ko": "그건 제가 가진 자료로는 확실하지 않아요. 정확한 건 학사지원팀에 확인해보는 게 좋아요!",
     "en": "Hmm, I can't confirm that from what I have. It's best to check with the Academic Support Team.",
 }
 
