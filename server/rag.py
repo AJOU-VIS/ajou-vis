@@ -75,9 +75,9 @@ class ChromaRetriever:
 
 
 def format_context(hits: list[SearchHit]) -> str:
-    """계약 ② 형식으로 직렬화. 구분자(쉼표)는 현행 프롬프트 파일 기준 —
-    docs/prompt_design.md의 파이프(|)와 불일치가 있어 확정 후 통일 예정."""
+    """계약 ② 형식으로 직렬화: [출처: 문서명 | 조항/URL] 본문 (점수: 0.00).
+    구분자(|)는 prompts/system_ko·en.md, user_turn.md와 반드시 같아야 한다."""
     return "\n".join(
-        f"[출처: {h.source_name}, {h.article}] {h.text} (점수: {h.score:.2f})"
+        f"[출처: {h.source_name} | {h.article}] {h.text} (점수: {h.score:.2f})"
         for h in hits
     )

@@ -6,7 +6,8 @@ AJOU-VIS 사용자 턴 템플릿 · v1.1 (언어 공용)
   {{RECENT_HISTORY}}    최근 2~3턴(사용자/치토 발화). 첫 턴이면 비움. 넘치면 오래된 턴부터 버리거나 요약.
   {{LANG}}              현재 질문 언어 코드(ko / en) — rewrite 단계에서 감지
   {{CURRENT_QUESTION}}  이번 턴 질문. rewrite.md로 독립 질문 재작성된 결과(재작성 불필요 시 원문).
-  {{RETRIEVED_CONTEXT}} 이번 턴 RAG 결과. 각 항목 [출처: 문서명, 조항/URL] (점수: 0.00).
+  {{RETRIEVED_CONTEXT}} 이번 턴 RAG 결과. 각 항목 [출처: 문서명 | 조항/URL] 본문 (점수: 0.00).
+태그 이름은 한국어로 고정 — system_en.md도 이 태그 이름을 그대로 가리킨다(언어별 템플릿 분리 없음).
                         형태 변경 요청(rewrite가 [NO_SEARCH])이거나 검색 결과 없으면 비움.
 -->
 <대화기록>
