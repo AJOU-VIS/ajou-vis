@@ -4,6 +4,7 @@
   ANTHROPIC_API_KEY  필수
   LLM_MODEL          기본 claude-opus-5 (비용 절감 시 claude-haiku-4-5 등)
   LLM_EFFORT         기본 low — 음성 대화라 지연 최소화. 품질 우선이면 high.
+                     effort 미지원 모델(Haiku 4.5 등)에서는 자동으로 생략한다.
 """
 from __future__ import annotations
 
@@ -24,13 +25,18 @@ def _get_client() -> anthropic.Anthropic:
     return _client
 
 
+# effort 파라미터를 지원하지 않는 모델 — 보내면 400 에러가 난다
+_NO_EFFORT_MODELS = ("claude-haiku-4-5", "claude-sonnet-4-5")
+
+
 def _build_kwargs(system: str, user: str, max_tokens: int) -> dict:
     kwargs: dict = {
         "model": MODEL,
         "max_tokens": max_tokens,
-        "output_config": {"effort": EFFORT},
         "messages": [{"role": "user", "content": user}],
     }
+    if EFFORT and not MODEL.startswith(_NO_EFFORT_MODELS):
+        kwargs["output_config"] = {"effort": EFFORT}
     if system:
         kwargs["system"] = system
     return kwargs
