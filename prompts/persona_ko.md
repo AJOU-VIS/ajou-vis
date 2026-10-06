@@ -1,5 +1,5 @@
 <!--
-치토(Chito) 페르소나 (한국어) · v2
+치토(Chito) 페르소나 (한국어) · v2.1
 용도: 서버가 시스템 프롬프트(system_ko.md) 뒤에 이 파일을 붙여 LLM에 보낸다 (server/prompts_loader.py).
       → 이 파일을 고치면 다음 서버 실행부터 실제 답변 말투에 반영된다.
 역할 분담: 무엇을 말할지(근거·판단·형식·금지)는 system_ko.md, 어떻게 말할지(정체성·성격·말투)는 이 파일.
@@ -7,10 +7,12 @@
 작성 규칙: 이 주석과 아래 TTS 블록은 LLM에 보내지 않는다. 그 사이 본문만 LLM 지시문이며, 서버가 <persona> 태그로 감싸 보낸다.
           본문 맨 위에 '# 페르소나' 같은 큰 제목을 두지 않는다 (시스템 프롬프트 끝의 제목을 모델이 답변에 이어 쓴 사례가 있음).
           응답 예시에 실제 규정·수치를 넣지 않는다 (모델이 예시 내용을 사실처럼 따라 할 수 있음).
-목소리(TTS) 블록: 치토 목소리 말투 지시의 원본 (한·영 공용). 지금은 Colab 노트북 1번 셀 TTS_INSTRUCT에 같은 문장을 쓴다.
+목소리(TTS) 블록: 치토 목소리 말투 지시의 원본 (한·영 공용). 지금은 Colab 노트북(server/colab_voice_server.ipynb) 1번 셀
+                 TTS_INSTRUCT·SENTENCE_PAUSE_S에 같은 값을 쓴다 — 바꿀 때 둘 다 고친다.
                  노트북이 이 블록을 직접 읽게 하는 것은 다혜 님과 합의 후.
 v1 → v2: 문서형 정의서를 LLM 지시문으로 재작성하고 시스템 프롬프트 뒤에 실제로 붙도록 연결. 인사 조건은 시스템 규칙으로 일원화,
          응답 예시에서 코퍼스에 없는 사실("24학번 140학점")과 문장 앞 "음," 제거, 목소리(TTS) 블록 추가. 화면용 설명(색 설정·이모지)은 삭제.
+v2 → v2.1: 목소리 블록 — 말투 지시를 steady로 바꾸고 문장 사이 무음 0.4초 추가 (합성 실험, docs/tts_voice_experiment.md). LLM 지시문은 그대로.
 캐릭터 이미지 등 에셋 파일은 레포에 두지 않고 팀 Drive에서 관리 (README 규칙).
 -->
 
@@ -35,5 +37,7 @@ v1 → v2: 문서형 정의서를 LLM 지시문으로 재작성하고 시스템 
 <!-- TTS:BEGIN -->
 ## 목소리 (TTS 말투 지시 — LLM에는 보내지 않음)
 - 화자: Sohee (Qwen3-TTS CustomVoice)
-- 지시문: Bright, warm and friendly campus guide. Speak clearly at a natural, slightly upbeat pace with a cheerful, encouraging tone.
+- 지시문: Bright, warm and friendly campus guide. Speak at a brisk, steady pace and keep the same bright, energetic tone from the first sentence to the last.
+- 문장 사이 무음: 0.4초 (포크 옵션 `--qwen3_tts_sentence_pause_s`)
+- 근거: 합성 실험 10/6 (docs/tts_voice_experiment.md) — 말이 느리고 둘째 문장부터 목소리가 가라앉던 문제에서 steady가 가장 나음
 <!-- TTS:END -->
