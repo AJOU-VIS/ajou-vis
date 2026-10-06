@@ -26,6 +26,7 @@ import gate
 import llm
 import prompts_loader
 import rewriter
+import sentence_limit
 import smalltalk
 from rag import ChromaRetriever, StubRetriever, format_context
 
@@ -164,9 +165,10 @@ def chat_completions(req: ChatRequest):
 
 def _llm_respond(system: str, user_msg: str, max_tokens: int, req: ChatRequest):
     if req.stream:
-        pieces = llm.chat_stream(system=system, user=user_msg, max_tokens=max_tokens)
+        pieces = sentence_limit.limit_stream(
+            llm.chat_stream(system=system, user=user_msg, max_tokens=max_tokens))
         return StreamingResponse(_stream_pieces(pieces, req.model),
                                  media_type="text/event-stream")
 
-    answer = llm.chat(system=system, user=user_msg, max_tokens=max_tokens)
+    answer = sentence_limit.limit_text(llm.chat(system=system, user=user_msg, max_tokens=max_tokens))
     return _openai_response(answer, req.model)
