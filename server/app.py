@@ -149,7 +149,8 @@ def chat_completions(req: ChatRequest):
     question, need_search = rewriter.rewrite(history, utterance, llm.chat)
 
     # ② 검색 → ① 신뢰도 게이트
-    hits = retriever.search(question) if need_search else []
+    hits = (retriever.search(rewriter.search_query(question, lang, llm.chat))
+            if need_search else [])
     if need_search and not gate.passes(hits):
         return _respond(gate.deferral_message(lang), req)
 

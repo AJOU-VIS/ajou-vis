@@ -22,3 +22,25 @@ def rewrite(history: str, utterance: str, llm_chat) -> tuple[str, bool]:
     if NO_SEARCH in line:
         return utterance, False
     return line or utterance, True
+
+
+_TRANSLATE = (
+    "다음 질문을 아주대학교 학칙·학사 규정을 검색하기 좋은 자연스러운 한국어 질문 한 문장으로 "
+    "옮겨라. 학사 용어는 학칙에서 쓰는 한국어 용어로 바꾼다. "
+    "번역된 질문 한 줄만 출력하고 설명·따옴표를 붙이지 않는다.\n\n"
+    "질문: {question}"
+)
+
+
+def search_query(question: str, lang: str, llm_chat) -> str:
+    """검색에 쓸 질문. 코퍼스(학칙)가 한국어라 영어 질문은 한국어로 옮겨 검색한다.
+
+    영어 질문을 그대로 검색하면 관련 조항이어도 유사도가 0.52~0.57로 낮게 나와
+    게이트 임계값(0.5)과 여유가 거의 없다. 답변 생성에는 원래 질문을 그대로 쓴다.
+    """
+    if lang != "en":
+        return question
+    result = llm_chat(system="", user=_TRANSLATE.format(question=question), max_tokens=100)
+    line = result.strip().splitlines()[0].strip() if result.strip() else ""
+    # 번역 결과에 한글이 없으면(실패) 원문으로 검색
+    return line if any("가" <= ch <= "힣" for ch in line) else question
