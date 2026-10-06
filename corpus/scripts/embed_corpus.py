@@ -49,33 +49,126 @@ SPLIT_CHUNK_SIZE = 450
 SPLIT_CHUNK_OVERLAP = 80
 
 
+def _load_regulation_file(data: dict) -> list[dict]:
+    """rules_crawler.py 결과 (학칙 등 조항 단위 규정) 하나를 공통 레코드로 변환."""
+    return [
+        {
+            "rule_name": data["rule_name"],
+            "rule_id": data["rule_id"],
+            "url": data["url"],
+            "effective_date": data.get("effective_date"),
+            "article_no": article["article_no"],
+            "article_title": article["article_title"],
+            "text": article["text"],
+        }
+        for article in data.get("articles", [])
+    ]
+
+
+def _load_event_file(data: list) -> list[dict]:
+    """event_calendar_crawler.py 결과(행사 일정)를 공통 레코드로 변환.
+    원본은 {category, content, period} 형태 — 검색에 쓰일 자연어 문장으로 합친다."""
+    records = []
+    for e in data:
+        text = f"{e['content']} ({e.get('category', '행사')}, 기간: {e.get('period', '미정')})"
+        records.append({
+            "rule_name": "아주대학교 행사 일정",
+            "rule_id": "events",
+            "url": "https://www.ajou.ac.kr/kr/ajou/notice-calendar.do",
+            "effective_date": None,
+            "article_no": None,
+            "article_title": e["content"],
+            "text": text,
+        })
+    return records
+
+
+def _load_facility_file(data: list) -> list[dict]:
+    """campus_facility_crawler.py 결과(캠퍼스 시설)를 공통 레코드로 변환.
+
+    편의시설류 표는 "구분"(위치/운영시간 등)을 행으로, 업체명(CU성호관점 등)을
+    칸으로 나열한 구조다. 이걸 행 그대로 한 문장으로 합치면 "CU" 같은 업체명이
+    다른 업체 이름들 틈에 묻혀 검색에서 밀리는 문제가 있었다 (실측 확인됨).
+    그래서 "구분" 칸이 있는 표는 업체별로 다시 묶어서, 업체 하나당 청크 하나
+    (그 업체의 위치·운영시간을 다 포함)로 만든다 — 업체명이 청크의 핵심 키워드가
+    되도록. "구분" 칸이 없는 표(예: 노선표처럼 행 하나가 곧 한 항목인 경우)는
+    변환할 필요가 없어 원래 방식(행 전체를 한 문장으로)을 그대로 쓴다.
+    """
+    records = []
+    for page in data:
+        for table in page.get("tables", []):
+            if table and "구분" in table[0]:
+                # 업체별로 묶기: {업체명: ["위치: ...", "운영시간: ...", ...]}
+                entities: dict[str, list[str]] = {}
+                for row in table:
+                    label = row.get("구분", "")
+                    for key, value in row.items():
+                        if key == "구분":
+                            continue
+                        entities.setdefault(key, []).append(
+                            f"{label}: {value}" if label else str(value)
+                        )
+                for entity_name, parts in entities.items():
+                    records.append({
+                        "rule_name": f"아주대학교 {page['page_name']}",
+                        "rule_id": page["page_name"],
+                        "url": page["url"],
+                        "effective_date": None,
+                        "article_no": None,
+                        "article_title": entity_name,
+                        "text": f"{entity_name} ({page['page_name']}) - " + ", ".join(parts),
+                    })
+            else:
+                # "구분" 칸이 없는 표: 기존 방식대로 행 전체를 한 문장으로
+                for row in table:
+                    sentence = ", ".join(f"{k}: {v}" for k, v in row.items())
+                    records.append({
+                        "rule_name": f"아주대학교 {page['page_name']}",
+                        "rule_id": page["page_name"],
+                        "url": page["url"],
+                        "effective_date": None,
+                        "article_no": None,
+                        "article_title": page["page_name"],
+                        "text": f"{page['page_name']} - {sentence}",
+                    })
+    return records
+
+
 def load_articles() -> list[dict]:
-    """corpus/raw/ 안의 모든 규정 JSON을 읽어서 조항 리스트로 합친다.
-    각 조항에 소속 규정명·URL 등 메타데이터를 같이 붙인다."""
+    """corpus/raw/ 안의 모든 JSON(규정·행사·시설)을 읽어서 공통 형식으로 합친다.
+    파일 내용 구조를 보고 어떤 종류인지 자동으로 판별한다 — 파일명에 의존하지 않음.
+    """
     all_articles = []
     json_files = sorted(RAW_DIR.glob("*.json"))
     if not json_files:
         raise FileNotFoundError(
             f"{RAW_DIR} 에 JSON 파일이 없습니다. "
-            f"rules_crawler.py의 output/*.json을 이 폴더로 복사했는지 확인하세요."
+            f"각 크롤러의 output/*.json을 이 폴더로 복사했는지 확인하세요."
         )
 
+    counts = {"regulation": 0, "event": 0, "facility": 0}
     for path in json_files:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
 
-        for article in data.get("articles", []):
-            all_articles.append({
-                "rule_name": data["rule_name"],
-                "rule_id": data["rule_id"],
-                "url": data["url"],
-                "effective_date": data.get("effective_date"),
-                "article_no": article["article_no"],
-                "article_title": article["article_title"],
-                "text": article["text"],
-            })
+        if isinstance(data, dict) and "articles" in data:
+            records = _load_regulation_file(data)
+            counts["regulation"] += len(records)
+        elif isinstance(data, list) and data and "page_name" in data[0]:
+            records = _load_facility_file(data)
+            counts["facility"] += len(records)
+        elif isinstance(data, list) and data and "category" in data[0]:
+            records = _load_event_file(data)
+            counts["event"] += len(records)
+        else:
+            print(f"  !! 경고: {path.name} 구조를 인식하지 못해 건너뜀")
+            continue
 
-    print(f"[로드 완료] 규정 {len(json_files)}건, 조항 {len(all_articles)}개")
+        all_articles.extend(records)
+
+    print(f"[로드 완료] 규정 조항 {counts['regulation']}개, "
+          f"행사 {counts['event']}개, 시설 {counts['facility']}개 "
+          f"(총 {len(all_articles)}개)")
     return all_articles
 
 
@@ -90,9 +183,12 @@ def build_chunks(articles: list[dict]) -> tuple[list[str], list[dict], list[str]
     )
 
     documents, metadatas, ids = [], [], []
-    for article in articles:
+    for idx, article in enumerate(articles):
         text = article["text"]
-        base_id = f"{article['rule_id']}_{article['article_no']}"
+        # article_no가 없는 레코드(행사·시설)는 전역 인덱스(idx)로 유일성을 보장.
+        # 규정 조항은 article_no가 있어 그대로 쓰면 사람이 읽기에도 자연스러움.
+        identifier = article["article_no"] or f"item{idx}"
+        base_id = f"{article['rule_id']}_{identifier}"
 
         if len(text) <= LONG_ARTICLE_THRESHOLD:
             pieces = [text]
@@ -105,9 +201,11 @@ def build_chunks(articles: list[dict]) -> tuple[list[str], list[dict], list[str]
                 "rule_name": article["rule_name"],
                 "rule_id": article["rule_id"],
                 "url": article["url"],
+                # ChromaDB 메타데이터는 None을 허용하지 않아 모두 ""로 대체
+                # (행사·시설 레코드는 article_no가 애초에 없음)
                 "effective_date": article["effective_date"] or "",
-                "article_no": article["article_no"],
-                "article_title": article["article_title"],
+                "article_no": article["article_no"] or "",
+                "article_title": article["article_title"] or "",
                 "chunk_index": i,
             })
             ids.append(f"{base_id}_{i}")

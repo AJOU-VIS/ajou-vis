@@ -27,6 +27,7 @@ import llm
 import prompts_loader
 import rewriter
 import smalltalk
+import realtime
 from rag import ChromaRetriever, StubRetriever, format_context
 
 app = FastAPI(title="AJOU-VIS RAG Server")
@@ -145,21 +146,27 @@ def chat_completions(req: ChatRequest):
         ) + "\n\n" + smalltalk.NOTE.get(lang, smalltalk.NOTE["en"])
         return _llm_respond(system, user_msg, max_tokens, req)
 
-    # ④ 팔로업 재작성 → 검색 필요 여부 판정
-    question, need_search = rewriter.rewrite(history, utterance, llm.chat)
+    # ④ 팔로업 재작성 → 검색 필요 여부 + 소스(규정/좌석/없음) 판정
+    question, need_search, source = rewriter.rewrite(history, utterance, llm.chat)
 
-    # ② 검색 → ① 신뢰도 게이트
-    hits = retriever.search(question) if need_search else []
-    if need_search and not gate.passes(hits):
-        return _respond(gate.deferral_message(lang), req)
+    if source == "seats":
+        context = realtime.format_seat_context()
+        if not context:
+            return _respond(gate.deferral_message(lang), req)
+    else:
+        # ② 검색 → ① 신뢰도 게이트
+        hits = retriever.search(question) if need_search else []
+        if need_search and not gate.passes(hits):
+            return _respond(gate.deferral_message(lang), req)
+        context = format_context(hits)
 
     # ③ 사용자 턴 조립 → 고정 시스템 프롬프트로 상위 LLM 호출
     user_msg = prompts_loader.user_turn(
         history=history, lang=lang, question=question,
-        context=format_context(hits),
+        context=context,
     )
+    
     return _llm_respond(system, user_msg, max_tokens, req)
-
 
 def _llm_respond(system: str, user_msg: str, max_tokens: int, req: ChatRequest):
     if req.stream:

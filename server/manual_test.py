@@ -21,11 +21,11 @@ client = TestClient(app.app)
 
 print("=== 1. rewrite: 꼬리질문 → 독립 질문 ===")
 history = "사용자: 휴학 신청 기간이 언제야?\n치토: 학사요람에 따르면 휴학 신청은 개강 후 4주 이내에 가능해요."
-q, need = rewriter.rewrite(history, "그럼 복학은?", llm.chat)
+q, need, _source = rewriter.rewrite(history, "그럼 복학은?", llm.chat)
 print(f"재작성: {q!r} / 검색 필요: {need}")
 
 print("\n=== 2. rewrite: 형태 변경 요청 → NO_SEARCH ===")
-q2, need2 = rewriter.rewrite(history, "방금 답 영어로 말해줘", llm.chat)
+q2, need2, _source2 = rewriter.rewrite(history, "방금 답 영어로 말해줘", llm.chat)
 print(f"재작성: {q2!r} / 검색 필요: {need2}")
 
 print("\n=== 3. 가짜 검색결과 주입 → 근거 인용 답변 (전체 경로) ===")
@@ -43,6 +43,8 @@ class FakeRetriever:
 app.retriever = FakeRetriever()
 r = client.post("/v1/chat/completions", json={
     "messages": [{"role": "user", "content": "복학 신청은 어떻게 해?"}]})
+print("상태코드:", r.status_code)
+print("응답 원문:", r.text)
 print("치토:", r.json()["choices"][0]["message"]["content"])
 
 print("\n=== 4. 근거 없는 질문 → 게이트 차단 (LLM 호출 없음) ===")
