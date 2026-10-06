@@ -60,9 +60,11 @@ class Trace:
         self.smalltalk = None
         self.rewritten = None
         self.need_search = None
+        self.search_query = None
         self.hits = []
         self.gate = None
         self.calls = []
+        self.stage = "answer"  # 지금 진행 중인 LLM 호출의 용도 (rewrite / translate / answer)
 
 
 def install_tracing(app, gate, rewriter, smalltalk, llm, trace: Trace, with_llm: bool):
@@ -78,10 +80,28 @@ def install_tracing(app, gate, rewriter, smalltalk, llm, trace: Trace, with_llm:
     orig_rewrite = rewriter.rewrite
 
     def rewrite(history, utterance, chat):
-        trace.rewritten, trace.need_search = orig_rewrite(history, utterance, chat)
+        trace.stage = "rewrite"
+        try:
+            trace.rewritten, trace.need_search = orig_rewrite(history, utterance, chat)
+        finally:
+            trace.stage = "answer"
         return trace.rewritten, trace.need_search
 
     rewriter.rewrite = rewrite
+
+    # 영어 질문은 검색 전에 한국어로 옮긴다 (server/rewriter.py search_query)
+    if hasattr(rewriter, "search_query"):
+        orig_search_query = rewriter.search_query
+
+        def search_query(question, lang, chat):
+            trace.stage = "translate"
+            try:
+                trace.search_query = orig_search_query(question, lang, chat)
+            finally:
+                trace.stage = "answer"
+            return trace.search_query
+
+        rewriter.search_query = search_query
 
     retriever = app.retriever
 
@@ -108,9 +128,10 @@ def install_tracing(app, gate, rewriter, smalltalk, llm, trace: Trace, with_llm:
             t = time.time()
             resp = orig_create(**kwargs)
             trace.calls.append({
-                # rewrite.md는 system 없이 통째로 user 메시지로 보낸다 (server/rewriter.py)
-                "stage": "answer" if kwargs.get("system") else "rewrite",
+                "stage": trace.stage,
                 "model": resp.model,
+                # 서버가 문장 수 상한(sentence_limit)으로 자르기 전의 원래 답
+                "text": next((b.text for b in resp.content if b.type == "text"), ""),
                 "input_tokens": resp.usage.input_tokens,
                 "output_tokens": resp.usage.output_tokens,
                 "seconds": round(time.time() - t, 2),
@@ -130,7 +151,7 @@ def path_of(trace: Trace) -> str:
         return "no_search"
     if trace.gate is False:
         return "gate_block"
-    if trace.rewritten is not None and trace.calls and trace.calls[0]["stage"] == "rewrite":
+    if any(c["stage"] == "rewrite" for c in trace.calls):
         return "rewrite"
     return "llm"
 
@@ -143,6 +164,8 @@ SEARCH_PATHS = {"llm", "rewrite"}  # 검색결과를 근거로 답한 경로
 # 음성 길이 기준 — 약 20초 분량(한국어 초당 7~8자, 영어 분당 150단어 가정). 넘으면 경고만.
 MAX_KO_CHARS = 150
 MAX_EN_WORDS = 50
+# 시스템 프롬프트 v1.3의 문장 수 규칙(2~3문장). 서버 상한으로 잘리기 전 LLM 원답에 적용한다.
+MAX_PROMPT_SENTENCES = 3
 
 # 부서명: '…팀/처/센터/본부' + 조사. 검색결과에 없는 이름이면 지어낸 것으로 본다.
 DEPT_NAME = re.compile(
@@ -155,6 +178,11 @@ DEFAULT_DEPTS = {"학사지원팀"}  # 근거가 없을 때 안내하도록 시�
 
 def sentence_count(text: str) -> int:
     return len([s for s in re.split(r"(?<=[.!?。])\s+", text.strip()) if s.strip()])
+
+
+def raw_answer(calls) -> str:
+    """서버 후처리(문장 수 상한) 전의 LLM 답변 — 마지막 answer 호출의 원문."""
+    return next((c.get("text", "") for c in reversed(calls) if c["stage"] == "answer"), "")
 
 
 def hangul_ratio(text: str) -> float:
@@ -194,6 +222,8 @@ def check(case: dict, answer: str, path: str, calls=(), context: str = "") -> tu
             warns.append(f"'{s}' 언급 — 맥락 확인")
 
     if path in LLM_PATHS:
+        if re.search(r"#\s*(Persona|페르소나)|</?persona>|<(검색결과|현재질문|대화기록)", answer, re.I):
+            issues.append("프롬프트 내용이 답변에 섞임 (TTS가 그대로 읽음)")
         if "\n" in answer:
             issues.append("줄바꿈 포함 (음성 출력 규칙)")
         if re.search(r"\*\*|^#|^\s*[-•*]\s", answer, re.M):
@@ -205,9 +235,11 @@ def check(case: dict, answer: str, path: str, calls=(), context: str = "") -> tu
             issues.append("개정 날짜 표기를 읽음")
         if re.search(r"[()（）]", answer):
             warns.append("괄호 사용 — 소리 내 읽기 어색한지 확인")
-        n = sentence_count(answer)
-        if n > 4:
-            issues.append(f"문장 {n}개 (기준 2~4)")
+        raw = raw_answer(calls) or answer
+        n = sentence_count(raw)
+        if n > MAX_PROMPT_SENTENCES:
+            cut = " — 서버 문장 상한이 줄여서 내보냄" if sentence_count(answer) < n else ""
+            issues.append(f"LLM 원답 {n}문장 (프롬프트 기준 2~3){cut}")
         if not case.get("greeting_ok") and re.match(r"\s*(안녕|hi\b|hello|hey)", answer, re.I):
             issues.append("묻지 않았는데 인사")
         want = case.get("answer_lang", case["lang"])
@@ -274,6 +306,7 @@ def run_case(case, client, trace, app, smalltalk, gate, dry_run: bool) -> dict:
         "basis": case.get("basis"), "expected": case.get("expected"),
         "path": path, "smalltalk": trace.smalltalk,
         "rewritten": trace.rewritten, "need_search": trace.need_search,
+        "search_query": trace.search_query,
         "gate": trace.gate,
         "top_score": round(max((h.score for h in trace.hits), default=0.0), 3),
         "hits": [
@@ -281,6 +314,7 @@ def run_case(case, client, trace, app, smalltalk, gate, dry_run: bool) -> dict:
             for h in trace.hits[:3]
         ],
         "answer": answer, "chars": len(answer), "words": len(answer.split()),
+        "raw_answer": raw_answer(trace.calls),
         "error": error, "seconds": seconds,
         "llm_calls": trace.calls,
         "auto_pass": not issues, "issues": issues, "warnings": warns,
@@ -300,7 +334,8 @@ def recheck(json_path: Path, cases: list[dict], retriever) -> tuple[dict, Path]:
             continue
         context = ""
         if r["path"] in SEARCH_PATHS:
-            context = "\n".join(h.text for h in retriever.search(r.get("rewritten") or r["question"]))
+            query = r.get("search_query") or r.get("rewritten") or r["question"]
+            context = "\n".join(h.text for h in retriever.search(query))
         issues, warns = check(case, r["answer"], r["path"], r["llm_calls"], context)
         if r.get("error"):
             issues.insert(0, f"오류: {r['error']}")
@@ -328,7 +363,7 @@ def git_info() -> str:
 
 def prompt_version() -> str:
     head = (ROOT / "prompts" / "system_ko.md").read_text(encoding="utf-8")[:200]
-    m = re.search(r"v\d+(?:\.\d+)*", head)
+    m = re.search(r"v\d+(?:\.\d+)*[a-z]?", head)  # v1.3, v1.4 (끝 알파벳 한 글자도 허용)
     return m.group(0) if m else "?"
 
 
@@ -415,6 +450,8 @@ def write_report(records, meta, out_md: Path):
         ]
         if r["rewritten"] and r["rewritten"] != r["question"]:
             lines.append(f"- 재작성된 질문: {r['rewritten']}")
+        if r.get("search_query") and r["search_query"] != (r["rewritten"] or r["question"]):
+            lines.append(f"- 검색용 한국어 질문: {r['search_query']}")
         if r["hits"]:
             hits = ", ".join(f"{h['source']} {h['article']} {h['score']:.2f}" for h in r["hits"])
             lines.append(f"- 검색 상위: {hits}")
@@ -427,6 +464,9 @@ def write_report(records, meta, out_md: Path):
             lines.append(f"- LLM: {calls}")
         if r["answer"]:
             lines += ["", f"> {r['answer']}", ""]
+        raw = r.get("raw_answer") or ""
+        if raw and raw.strip() != r["answer"].strip():
+            lines += ["LLM 원답 (서버 문장 상한 적용 전):", "", f"> {raw}".replace("\n", " "), ""]
         for i in r["issues"]:
             lines.append(f"- ❌ {i}")
         for w in r["warnings"]:
@@ -465,9 +505,6 @@ def main():
     import smalltalk
     from fastapi.testclient import TestClient
 
-    if not (args.dry_run or args.recheck) and llm.MODEL.startswith("claude-haiku"):
-        sys.exit("Haiku 4.5는 effort 옵션을 지원하지 않아 server/llm.py 호출이 매번 오류가 납니다. "
-                 "저비용 테스트는 --model claude-sonnet-5-5 를 쓰세요.")
     if type(app.retriever).__name__ == "StubRetriever":
         sys.exit("corpus/chroma_db가 없습니다. 먼저 corpus/scripts/embed_corpus.py로 검색 DB를 만드세요.")
 
