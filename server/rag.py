@@ -144,7 +144,9 @@ class ChromaRetriever:
         return [
             SearchHit(
                 source_name=meta["rule_name"],
-                article=f"{meta['article_no']}({meta['article_title']})",
+                # 규정은 "제32조(휴학)", 안내 페이지·행사·시설은 조항 번호가 없어 제목만
+                article=(f"{meta['article_no']}({meta['article_title']})"
+                         if meta["article_no"] else meta["article_title"]),
                 text=doc,
                 score=score,
             )

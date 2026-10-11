@@ -134,6 +134,25 @@ def _load_facility_file(data: list) -> list[dict]:
     return records
 
 
+def _load_page_file(data: dict) -> list[dict]:
+    """academic_pages_crawler.py 결과(학적·졸업·등록 등 학사 안내 페이지)를 공통 레코드로 변환.
+    크롤러가 이미 제목 경로를 붙여 480자 이하 청크로 만들어 두었으므로 그대로 쓴다.
+    페이지 수정일(source_updated)은 effective_date 칸에 넣어, 규정과 안내 페이지의
+    내용이 다를 때 어느 쪽이 더 최신인지 근거로 남긴다."""
+    return [
+        {
+            "rule_name": data["source_name"],
+            "rule_id": f"web_{data['slug']}",
+            "url": data["url"],
+            "effective_date": data.get("source_updated"),
+            "article_no": None,
+            "article_title": sec["title"],
+            "text": sec["text"],
+        }
+        for sec in data.get("sections", [])
+    ]
+
+
 def load_articles() -> list[dict]:
     """corpus/raw/ 안의 모든 JSON(규정·행사·시설)을 읽어서 공통 형식으로 합친다.
     파일 내용 구조를 보고 어떤 종류인지 자동으로 판별한다 — 파일명에 의존하지 않음.
@@ -146,7 +165,7 @@ def load_articles() -> list[dict]:
             f"각 크롤러의 output/*.json을 이 폴더로 복사했는지 확인하세요."
         )
 
-    counts = {"regulation": 0, "event": 0, "facility": 0}
+    counts = {"regulation": 0, "event": 0, "facility": 0, "page": 0}
     for path in json_files:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
@@ -154,6 +173,9 @@ def load_articles() -> list[dict]:
         if isinstance(data, dict) and "articles" in data:
             records = _load_regulation_file(data)
             counts["regulation"] += len(records)
+        elif isinstance(data, dict) and data.get("doc_type") == "web_page":
+            records = _load_page_file(data)
+            counts["page"] += len(records)
         elif isinstance(data, list) and data and "page_name" in data[0]:
             records = _load_facility_file(data)
             counts["facility"] += len(records)
@@ -167,7 +189,8 @@ def load_articles() -> list[dict]:
         all_articles.extend(records)
 
     print(f"[로드 완료] 규정 조항 {counts['regulation']}개, "
-          f"행사 {counts['event']}개, 시설 {counts['facility']}개 "
+          f"행사 {counts['event']}개, 시설 {counts['facility']}개, "
+          f"학사 안내 페이지 {counts['page']}개 "
           f"(총 {len(all_articles)}개)")
     return all_articles
 
