@@ -21,6 +21,21 @@ HEADERS = {
 }
 SOURCE_NAME = "아주대학교 중앙도서관 좌석현황"
 
+# 좌석 질문 판별 키워드. 보수적으로 시작(오탐을 줄이는 쪽) — 필요하면 더 추가한다.
+# 한국어만 넣으면 영어 질문이 놓치므로 영어 표현도 같이 둔다.
+SEAT_KEYWORDS = (
+    "좌석", "열람실", "자리 있", "빈자리", "자리 남",
+    "seat", "reading room", "study lounge", "study room",
+)
+
+
+def is_seat_question(text: str) -> bool:
+    """질문이 도서관 좌석(실시간 조회) 질문인지 키워드로 판별한다.
+    LLM 호출 없이 바로 판단하므로 지연이 없다. 원문뿐 아니라 rewriter가 다시 쓴
+    질문(꼬리질문 "그럼 3층은?", 영어 질문의 한국어 검색어)에도 쓸 수 있다."""
+    lowered = (text or "").lower()
+    return any(kw in lowered for kw in SEAT_KEYWORDS)
+
 
 def _find_rooms(payload) -> list[dict]:
     """library_seats_crawler.py와 동일한 재귀 탐색: 'seats' 필드를 가진
