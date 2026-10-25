@@ -28,6 +28,7 @@ import prompts_loader
 import rewriter
 import sentence_limit
 import smalltalk
+import realtime
 from rag import ChromaRetriever, StubRetriever, format_context
 
 app = FastAPI(title="AJOU-VIS RAG Server")
@@ -146,22 +147,36 @@ def chat_completions(req: ChatRequest):
         ) + "\n\n" + smalltalk.NOTE.get(lang, smalltalk.NOTE["en"])
         return _llm_respond(system, user_msg, max_tokens, req)
 
-    # ④ 팔로업 재작성 → 검색 필요 여부 판정
-    question, need_search = rewriter.rewrite(history, utterance, llm.chat)
+    # ④ 좌석 질문은 벡터 검색 대신 도서관 API를 직접 호출한다 (분 단위로 바뀌는 값).
+    # 원문에서 먼저 보고(LLM 호출 없이), 아니면 팔로업 재작성 결과에서도 본다
+    # ("그럼 3층은?" 같은 꼬리질문이 좌석 질문일 수 있다).
+    is_seat = realtime.is_seat_question(utterance)
+    if is_seat:
+        question, need_search = utterance, True
+    else:
+        # 팔로업 재작성 → 검색 필요 여부 판정
+        question, need_search = rewriter.rewrite(history, utterance, llm.chat)
+        is_seat = need_search and realtime.is_seat_question(question)
 
-    # ② 검색 → ① 신뢰도 게이트
-    hits = (retriever.search(rewriter.search_query(question, lang, llm.chat))
-            if need_search else [])
-    if need_search and not gate.passes(hits):
-        return _respond(gate.deferral_message(lang), req)
+    if is_seat:
+        context = realtime.format_seat_context()
+        if not context:
+            return _respond(gate.deferral_message(lang), req)
+    else:
+        # ② 검색 → ① 신뢰도 게이트 (영어 질문은 한국어 검색어로 옮겨 검색한다)
+        hits = (retriever.search(rewriter.search_query(question, lang, llm.chat))
+                if need_search else [])
+        if need_search and not gate.passes(hits):
+            return _respond(gate.deferral_message(lang), req)
+        context = format_context(hits)
 
     # ③ 사용자 턴 조립 → 고정 시스템 프롬프트로 상위 LLM 호출
     user_msg = prompts_loader.user_turn(
         history=history, lang=lang, question=question,
-        context=format_context(hits),
+        context=context,
     )
+    
     return _llm_respond(system, user_msg, max_tokens, req)
-
 
 def _llm_respond(system: str, user_msg: str, max_tokens: int, req: ChatRequest):
     if req.stream:
