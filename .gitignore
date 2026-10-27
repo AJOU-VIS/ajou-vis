@@ -27,6 +27,7 @@ models/
 
 # --- eval 실행 결과 (재생성 가능 — 공유할 결과는 docs/나 Drive로) ---
 eval/smoke/results/
+eval/bank/results/
 
 # --- python ---
 __pycache__/
