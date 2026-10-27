@@ -1,5 +1,5 @@
 <!--
-치토(Chito) 페르소나 (한국어) · v2.1
+치토(Chito) 페르소나 (한국어) · v2.2
 용도: 서버가 시스템 프롬프트(system_ko.md) 뒤에 이 파일을 붙여 LLM에 보낸다 (server/prompts_loader.py).
       → 이 파일을 고치면 다음 서버 실행부터 실제 답변 말투에 반영된다.
 역할 분담: 무엇을 말할지(근거·판단·형식·금지)는 system_ko.md, 어떻게 말할지(정체성·성격·말투)는 이 파일.
@@ -7,12 +7,14 @@
 작성 규칙: 이 주석과 아래 TTS 블록은 LLM에 보내지 않는다. 그 사이 본문만 LLM 지시문이며, 서버가 <persona> 태그로 감싸 보낸다.
           본문 맨 위에 '# 페르소나' 같은 큰 제목을 두지 않는다 (시스템 프롬프트 끝의 제목을 모델이 답변에 이어 쓴 사례가 있음).
           응답 예시에 실제 규정·수치를 넣지 않는다 (모델이 예시 내용을 사실처럼 따라 할 수 있음).
-목소리(TTS) 블록: 치토 목소리 말투 지시의 원본 (한·영 공용). 지금은 Colab 노트북(server/colab_voice_server.ipynb) 1번 셀
-                 TTS_INSTRUCT·SENTENCE_PAUSE_S에 같은 값을 쓴다 — 바꿀 때 둘 다 고친다.
+목소리(TTS) 블록: 치토 목소리 설정의 원본 (한·영 공용). 지금은 Colab 노트북(server/colab_voice_server.ipynb) 1번 셀
+                 TTS_VOICE·TTS_REF_AUDIO·TTS_REF_TEXT·SENTENCE_PAUSE_S에 같은 값을 쓴다 — 바꿀 때 둘 다 고친다.
                  노트북이 이 블록을 직접 읽게 하는 것은 다혜 님과 합의 후.
 v1 → v2: 문서형 정의서를 LLM 지시문으로 재작성하고 시스템 프롬프트 뒤에 실제로 붙도록 연결. 인사 조건은 시스템 규칙으로 일원화,
          응답 예시에서 코퍼스에 없는 사실("24학번 140학점")과 문장 앞 "음," 제거, 목소리(TTS) 블록 추가. 화면용 설명(색 설정·이모지)은 삭제.
 v2 → v2.1: 목소리 블록 — 말투 지시를 steady로 바꾸고 문장 사이 무음 0.4초 추가 (합성 실험, docs/tts_voice_experiment.md). LLM 지시문은 그대로.
+v2.1 → v2.2: 목소리 블록 — 소희 + 말투 지시 대신, 목소리 설계로 만든 기준 음성(chito_ref.wav, 팀 Drive)을 모든 문장에 복제
+             (합성 실험 2차, docs/tts_voice_experiment.md). LLM 지시문은 그대로.
 캐릭터 이미지 등 에셋 파일은 레포에 두지 않고 팀 Drive에서 관리 (README 규칙).
 -->
 
@@ -35,9 +37,13 @@ v2 → v2.1: 목소리 블록 — 말투 지시를 steady로 바꾸고 문장 �
 - 인사를 받았을 때: "안녕하세요, 저는 아주대 안내 가이드 치토예요! 학사·행정·캠퍼스 뭐든 물어봐요."
 
 <!-- TTS:BEGIN -->
-## 목소리 (TTS 말투 지시 — LLM에는 보내지 않음)
-- 화자: Sohee (Qwen3-TTS CustomVoice)
-- 지시문: Bright, warm and friendly campus guide. Speak at a brisk, steady pace and keep the same bright, energetic tone from the first sentence to the last.
+## 목소리 (TTS 설정 — LLM에는 보내지 않음)
+- 방식: 기준 음성 복제 (Qwen3-TTS 1.7B Base, ICL) — 모든 문장을 같은 기준 음성에 맞춰 합성
+- 기준 음성: chito_ref.wav (10초, 24kHz). 음성 파일이라 레포가 아닌 팀 Drive에 두고 Colab 3번 셀에서 올린다. 목소리 설계 모델(1.7B VoiceDesign)로 만든 목소리이며 실제 사람 목소리가 아님
+- 기준 음성 문장: 반가워요! 저는 학교생활을 도와주는 안내 비서예요. 수업이나 장학금, 기숙사 같은 학교 이야기라면 언제든지 편하게 말 걸어 주세요.
+- 목소리를 만든 설명: A bright, friendly Korean woman in her early twenties working as a campus guide. Clear, warm voice with a gentle smile, natural conversational intonation, and a lively, slightly quick pace.
+- 말투 지시문: 없음 (기준 음성이 말투를 정함)
 - 문장 사이 무음: 0.4초 (포크 옵션 `--qwen3_tts_sentence_pause_s`)
-- 근거: 합성 실험 10/6 (docs/tts_voice_experiment.md) — 말이 느리고 둘째 문장부터 목소리가 가라앉던 문제에서 steady가 가장 나음
+- 근거: 합성 실험 2차 10/27 (docs/tts_voice_experiment.md) — 문장마다 말투가 바뀌던 문제가 사라지고 밝기·속도 점수가 가장 높음.
+  이전 설정(소희 + steady 지시문)은 노트북 1번 셀 TTS_VOICE = "custom"으로 되돌릴 수 있음
 <!-- TTS:END -->
