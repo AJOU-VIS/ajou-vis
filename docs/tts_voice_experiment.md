@@ -181,7 +181,7 @@ steady + 0.4초를 반영한 뒤 Colab 음성 테스트를 다시 했다 (이번
 
 | 결정 | 이유 | 반영 위치 |
 |---|---|---|
-| 목소리 → **D (기준 음성 `설계_3` 복제)** | 종합 1위. 일관성·밝기·속도가 가장 높고 지연은 그대로 | 기준 음성 `chito_ref.wav`(팀 Drive, Colab 3번 셀에서 올림), `prompts/persona_ko.md` 목소리 블록(페르소나 v2.2), `server/colab_voice_server.ipynb` 1·3·7번 셀 (`TTS_VOICE = "clone"`) |
+| 목소리 → **D (기준 음성 `설계_3` 복제)** | 종합 1위. 일관성·밝기·속도가 가장 높고 지연은 그대로 | `server/voice/chito_ref.wav`(음성 파일 규칙의 예외, `.gitignore`), `prompts/persona_ko.md` 목소리 블록(페르소나 v2.2), `server/colab_voice_server.ipynb` 1·7번 셀 (`TTS_VOICE = "clone"`) |
 | 말투 지시문은 쓰지 않음 | 지시문만 바꾸는 방법은 효과가 없었고, 복제에서는 기준 음성이 말투를 정함 | Colab 1번 셀 (`TTS_VOICE = "custom"`으로 되돌릴 때만 사용) |
 | 속도 후처리는 넣지 않음 | 고정한 목소리의 원래 속도(초당 약 6.1~6.2음절)가 가장 좋음 | 변경 없음 |
 | 복제할 때도 문장마다 언어를 넘김 | 서버의 복제 경로는 언어를 `auto`로 넘기는데 실험은 문장마다 korean/english를 넘겼음 → 실험과 같게 맞춤. 언어는 합성할 문장의 글자(한글·영문)로 먼저 정하고, 판단이 안 되면 사용자 발화 언어를 씀 (7.5) | 포크 `qwen3_tts_handler` (브랜치 `fix/tts-clone-language`) |

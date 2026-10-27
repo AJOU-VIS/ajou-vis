@@ -13,7 +13,7 @@
 v1 → v2: 문서형 정의서를 LLM 지시문으로 재작성하고 시스템 프롬프트 뒤에 실제로 붙도록 연결. 인사 조건은 시스템 규칙으로 일원화,
          응답 예시에서 코퍼스에 없는 사실("24학번 140학점")과 문장 앞 "음," 제거, 목소리(TTS) 블록 추가. 화면용 설명(색 설정·이모지)은 삭제.
 v2 → v2.1: 목소리 블록 — 말투 지시를 steady로 바꾸고 문장 사이 무음 0.4초 추가 (합성 실험, docs/tts_voice_experiment.md). LLM 지시문은 그대로.
-v2.1 → v2.2: 목소리 블록 — 소희 + 말투 지시 대신, 목소리 설계로 만든 기준 음성(chito_ref.wav, 팀 Drive)을 모든 문장에 복제
+v2.1 → v2.2: 목소리 블록 — 소희 + 말투 지시 대신, 목소리 설계로 만든 기준 음성(server/voice/chito_ref.wav)을 모든 문장에 복제
              (합성 실험 2차, docs/tts_voice_experiment.md). LLM 지시문은 그대로.
 캐릭터 이미지 등 에셋 파일은 레포에 두지 않고 팀 Drive에서 관리 (README 규칙).
 -->
@@ -39,7 +39,7 @@ v2.1 → v2.2: 목소리 블록 — 소희 + 말투 지시 대신, 목소리 설
 <!-- TTS:BEGIN -->
 ## 목소리 (TTS 설정 — LLM에는 보내지 않음)
 - 방식: 기준 음성 복제 (Qwen3-TTS 1.7B Base, ICL) — 모든 문장을 같은 기준 음성에 맞춰 합성
-- 기준 음성: chito_ref.wav (10초, 24kHz). 음성 파일이라 레포가 아닌 팀 Drive에 두고 Colab 3번 셀에서 올린다. 목소리 설계 모델(1.7B VoiceDesign)로 만든 목소리이며 실제 사람 목소리가 아님
+- 기준 음성: server/voice/chito_ref.wav (10초, 24kHz). 음성 파일은 레포에 두지 않는 규칙의 예외 (.gitignore). 목소리 설계 모델(1.7B VoiceDesign)로 만든 목소리이며 실제 사람 목소리가 아님
 - 기준 음성 문장: 반가워요! 저는 학교생활을 도와주는 안내 비서예요. 수업이나 장학금, 기숙사 같은 학교 이야기라면 언제든지 편하게 말 걸어 주세요.
 - 목소리를 만든 설명: A bright, friendly Korean woman in her early twenties working as a campus guide. Clear, warm voice with a gentle smile, natural conversational intonation, and a lively, slightly quick pace.
 - 말투 지시문: 없음 (기준 음성이 말투를 정함)
