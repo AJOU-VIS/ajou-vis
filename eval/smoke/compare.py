@@ -94,7 +94,7 @@ def main():
         f"| 실패 항목 수 | {sa['issues']} | {sb['issues']} | {fmt_delta(sa['issues'], sb['issues'])} |",
         f"| 답변 잘림 | {sa['cut']} | {sb['cut']} | {fmt_delta(sa['cut'], sb['cut'])} |",
         f"| 문장 규칙 위반 (LLM 원답 4문장 이상) | {sa['over']} | {sb['over']} | {fmt_delta(sa['over'], sb['over'])} |",
-        f"| 음성 길이 초과 (150자 / 50단어) | {sa['long']} | {sb['long']} | {fmt_delta(sa['long'], sb['long'])} |",
+        f"| 음성 길이 초과 (run_smoke.py의 MAX_KO_CHARS / MAX_EN_WORDS) | {sa['long']} | {sb['long']} | {fmt_delta(sa['long'], sb['long'])} |",
         f"| 평균 길이 — 한국어 | {sa['ko_chars']:.0f}자 | {sb['ko_chars']:.0f}자 | {fmt_delta(sa['ko_chars'], sb['ko_chars'])} |",
         f"| 평균 길이 — 영어 | {sa['en_words']:.0f}단어 | {sb['en_words']:.0f}단어 | {fmt_delta(sa['en_words'], sb['en_words'])} |",
         f"| 응답 시간 중앙값 (LLM 답변) | {sa['latency']:.1f}s | {sb['latency']:.1f}s | {fmt_delta(sa['latency'], sb['latency'], 1)} |",
