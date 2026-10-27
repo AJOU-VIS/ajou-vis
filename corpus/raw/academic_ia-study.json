@@ -1,0 +1,41 @@
+{
+  "doc_type": "web_page",
+  "source_name": "아주대학교 유학생 학습 지원 안내",
+  "group": "외국인",
+  "name": "유학생 학습 지원",
+  "slug": "ia-study",
+  "url": "https://www.ajou.ac.kr/iadmissions/support/student-study.do",
+  "source_updated": "2025-04-11",
+  "fetched_at": "2026-10-11T21:15:12",
+  "content_hash": "07101c0dde2efbd9fd3c77e092be6c9f5b270707",
+  "sections": [
+    {
+      "title": "유학생 학습 지원",
+      "text": "유학생 학습 지원\n문의: 국제협력처 유학생입학팀 심리상담사 (031-219-3598, icounseling@ajou.ac.kr)"
+    },
+    {
+      "title": "글쓰기클리닉 > 대상",
+      "text": "유학생 학습 지원 > 글쓰기클리닉 > 대상\n외국 국적의 학부 재학생"
+    },
+    {
+      "title": "글쓰기클리닉 > 개요",
+      "text": "유학생 학습 지원 > 글쓰기클리닉 > 개요\n유학생들의 한국어 능력 향상 및 보고서 작성, 발표 자료 등의 학업 적응을 지원합니다."
+    },
+    {
+      "title": "글쓰기클리닉 > 프로그램 시행 시기",
+      "text": "유학생 학습 지원 > 글쓰기클리닉 > 프로그램 시행 시기\n매 학기 초 및 방학 초"
+    },
+    {
+      "title": "TOPIK 특강 > 대상",
+      "text": "유학생 학습 지원 > TOPIK 특강 > 대상\n외국 국적의 학부 재학생"
+    },
+    {
+      "title": "TOPIK 특강 > 개요",
+      "text": "유학생 학습 지원 > TOPIK 특강 > 개요\n학업능력 향상 및 한국 적응을 돕기 위한 토픽 성적(4급 이상) 획득을 지원합니다."
+    },
+    {
+      "title": "TOPIK 특강 > 프로그램 시행 시기",
+      "text": "유학생 학습 지원 > TOPIK 특강 > 프로그램 시행 시기\nTOPIK 시험 매 회기 전"
+    }
+  ]
+}

@@ -15,7 +15,8 @@ server\.venv\Scripts\python eval\smoke\run_smoke.py --recheck eval\smoke\results
 
 - `--dry-run`: LLM 없이 잡담 판정·검색 점수·게이트만 (과금 없음). 케이스를 추가했거나 게이트 임계값을 바꿨을 때 먼저 확인.
 - 전체 실행은 Claude API를 호출한다. `claude-opus-5`(effort low) 기준 22개에 약 $0.44.
-- `--model`: 같은 케이스를 다른 모델로 — 모델별 비교표용. `claude-haiku-4-5`는 서버가 보내는 effort 옵션을 지원하지 않아 쓸 수 없다.
+- `--model`: 같은 케이스를 다른 모델로 돌릴 때만 사용. 팀 평가 기준 모델은 `claude-opus-5`(서버 기본값)다.
+- 서버의 답변 문장 수 상한(`MAX_SENTENCES`)이 켜져 있어도 문장 수 점검은 상한 적용 **전** LLM 원답 기준이다 — 프롬프트 규칙을 지켰는지와 서버가 막아줬는지를 구분하기 위해서.
 - `--recheck`: `cases.json`이나 점검 규칙을 고친 뒤 저장된 답변으로 리포트만 다시 만든다 (과금 없음).
 - 사전 조건: `server/.env`에 API 키, `corpus/chroma_db` 구축 (`corpus/scripts/embed_corpus.py`).
 

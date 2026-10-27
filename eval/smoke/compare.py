@@ -38,6 +38,8 @@ def stats(data: dict) -> dict:
         "issues": sum(len(r["issues"]) for r in rs),
         "long": sum(any("음성 기준 긺" in w for w in r["warnings"]) for r in rs),
         "cut": sum(any("잘림" in i for i in r["issues"]) for r in rs),
+        # 프롬프트 2~3문장 규칙을 LLM 원답이 넘긴 케이스 (서버 문장 상한 적용 전 기준)
+        "over": sum(any("LLM 원답" in i for i in r["issues"]) for r in rs),
         "ko_chars": statistics.mean(ko) if ko else 0,
         "en_words": statistics.mean(en) if en else 0,
         # 첫 케이스에 모델 로딩이 섞인 실행도 있어 평균 대신 중앙값
@@ -91,6 +93,7 @@ def main():
         f"| 자동 점검 통과 | {sa['pass']}/{sa['n']} | {sb['pass']}/{sb['n']} | {fmt_delta(sa['pass'], sb['pass'], lower_is_better=False)} |",
         f"| 실패 항목 수 | {sa['issues']} | {sb['issues']} | {fmt_delta(sa['issues'], sb['issues'])} |",
         f"| 답변 잘림 | {sa['cut']} | {sb['cut']} | {fmt_delta(sa['cut'], sb['cut'])} |",
+        f"| 문장 규칙 위반 (LLM 원답 4문장 이상) | {sa['over']} | {sb['over']} | {fmt_delta(sa['over'], sb['over'])} |",
         f"| 음성 길이 초과 (150자 / 50단어) | {sa['long']} | {sb['long']} | {fmt_delta(sa['long'], sb['long'])} |",
         f"| 평균 길이 — 한국어 | {sa['ko_chars']:.0f}자 | {sb['ko_chars']:.0f}자 | {fmt_delta(sa['ko_chars'], sb['ko_chars'])} |",
         f"| 평균 길이 — 영어 | {sa['en_words']:.0f}단어 | {sb['en_words']:.0f}단어 | {fmt_delta(sa['en_words'], sb['en_words'])} |",

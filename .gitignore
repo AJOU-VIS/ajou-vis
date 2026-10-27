@@ -50,3 +50,4 @@ __pycache__/
 corpus/chroma_db/
 output/_debug_html/
 output/
+corpus/chroma_db*/
