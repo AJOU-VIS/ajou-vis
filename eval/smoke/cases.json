@@ -1,6 +1,6 @@
 {
-  "version": "2026-10-03",
-  "about": "프롬프트 계약 스모크 테스트. 질문은 현재 코퍼스(학칙·장학금 지급규칙·외국인학생 규칙) 범위에서만 출제. 구간: A 근거 충분 / B 근거 부분·조건 상이 / C-gate 근거 없음(게이트 차단 기대) / C-prompt 게이트는 통과하지만 답할 근거 없음(프롬프트가 보류해야 함) / D 범위 밖 / M 멀티턴·잡담 경로.",
+  "version": "2026-10-28",
+  "about": "프롬프트 계약 스모크 테스트. 질문은 현재 코퍼스(학칙·장학금 지급규칙·외국인학생 규칙·캠퍼스 시설, 10/25부터 학사·유학생 안내 28페이지 추가) 범위에서만 출제. 코퍼스가 늘면 C 케이스에 근거가 생길 수 있어 다시 점검한다(10/28: B2·C1~C4·C6). 구간: A 근거 충분 / B 근거 부분·조건 상이 / C-gate 근거 없음(게이트 차단 기대) / C-prompt 게이트는 통과하지만 답할 근거 없음(프롬프트가 보류해야 함) / D 범위 밖 / M 멀티턴·잡담 경로.",
   "fields": {
     "expect_gate": "pass | block — 서버 신뢰도 게이트 기대 결과",
     "expect_path": "llm | gate_block | rewrite | no_search | smalltalk — 서버 처리 경로 기대값 (생략 시 확인 안 함)",
@@ -81,13 +81,11 @@
     {
       "id": "B2", "zone": "B", "lang": "ko",
       "question": "소프트웨어학과 24학번은 졸업하려면 몇 학점 필요해?",
-      "basis": "아주대학교 학칙 제50조 ①1 (소프트웨어융합대학 128학점, 국방디지털융합학과 140학점)",
-      "expected": "학칙(현행) 기준 소프트웨어융합대학은 128학점. 학번별 경과조치는 학칙 본문에 없으므로 '24학번도 128학점'처럼 단정하지 말고 학사요람·학과 확인 안내 (계획서 기준 16~24학번 소프트웨어학과는 140학점). 시스템 프롬프트 예시의 '24학번 140학점'을 근거 없이 말해도 오답.",
+      "basis": "아주대학교 졸업 안내 · 졸업요건 (소프트웨어학과 2016~2024학번 140학점) + 학칙 제50조 ①1 (소프트웨어융합대학 128학점). 10/28 재점검: 새 28페이지(10/25 병합)로 학번별 근거가 생김",
+      "expected": "졸업 안내 기준 소프트웨어학과 16학번부터 24학번까지는 140학점 → 24학번은 140학점. 현행 학칙의 소프트웨어융합대학 128학점을 24학번에 그대로 단정하면 오답.",
       "expect_gate": "pass",
-      "must_include_all": ["128"],
-      "must_include_any": [["학번별", "학사요람"]],
-      "must_not_include": ["24학번도"],
-      "watch_for": ["140"],
+      "must_include_all": ["140"],
+      "watch_for": ["128"],
       "cites_source": true
     },
     {
@@ -110,38 +108,38 @@
       "cites_source": true
     },
     {
-      "id": "C1", "zone": "C-gate", "lang": "ko",
+      "id": "C1", "zone": "A", "lang": "ko",
       "question": "기숙사 세탁실은 몇 층이야?",
-      "basis": "없음",
-      "expected": "게이트 차단 → 정형 보류 멘트. 외국인학생 규칙 제7조(기숙사)와 겹쳐 게이트를 통과하면 C-prompt로 판단: 층수를 지어내면 오답.",
-      "expect_gate": "block",
-      "must_include_any": [["학사지원팀", "확인", "담당"]],
-      "watch_for": ["층에"]
-    },
-    {
-      "id": "C2", "zone": "C-gate", "lang": "ko",
-      "question": "오늘 학생식당 점심 메뉴 뭐야?",
-      "basis": "없음",
-      "expected": "게이트 차단 → 정형 보류 멘트.",
-      "expect_gate": "block",
-      "must_include_any": [["학사지원팀", "확인", "담당"]]
-    },
-    {
-      "id": "C3", "zone": "C-gate", "lang": "en",
-      "question": "Where can I print documents on campus?",
-      "basis": "없음",
-      "expected": "Gate block → English deferral message.",
-      "expect_gate": "block",
-      "must_include_any": [["Academic Support", "check"]]
-    },
-    {
-      "id": "C4", "zone": "C-prompt", "lang": "ko",
-      "question": "휴학 신청 기간이 언제야?",
-      "basis": "학칙 제32조에 신청 기간 없음",
-      "expected": "휴학 조항은 검색되지만 신청 기간은 없음 → 기간을 지어내지 말고 학사지원팀·포탈 안내. 통산 기간 등 관련 사실만 덧붙이는 것은 허용.",
+      "basis": "아주대학교 기숙사(유학생) 안내 · 생활관 복지시설. 10/28 재점검: 새 28페이지(10/25 병합)로 근거가 생김 (C-gate → A)",
+      "expected": "세탁실은 각 관과 식당동 지하 1층에 있음.",
       "expect_gate": "pass",
-      "must_include_any": [["학사지원팀", "포탈", "담당", "확인"]],
-      "watch_for": ["주 이내", "개강", "월 "]
+      "must_include_all": ["지하 1층"],
+      "cites_source": true
+    },
+    {
+      "id": "C2", "zone": "C-prompt", "lang": "ko",
+      "question": "오늘 학생식당 점심 메뉴 뭐야?",
+      "basis": "없음 — 편의시설의 식당 운영시간이 검색돼 게이트를 통과함 (10/28 재점검: 새 28페이지(10/25 병합)·시설 데이터, C-gate → C-prompt)",
+      "expected": "메뉴를 지어내지 말고 자료에 없다고 밝히거나 확인 안내. 식당 운영시간 같은 관련 사실만 덧붙이는 것은 허용.",
+      "expect_gate": "pass",
+      "must_include_any": [["학사지원팀", "확인", "담당", "자료에 없", "어려워요"]]
+    },
+    {
+      "id": "C3", "zone": "C-prompt", "lang": "en",
+      "question": "Where can I print documents on campus?",
+      "basis": "없음 — 증명서 발급 안내가 검색돼 게이트를 통과함 (10/28 재점검: 새 28페이지(10/25 병합), C-gate → C-prompt)",
+      "expected": "Don't invent printing spots; point to checking with the Academic Support Team. Mentioning certificate printing as a related fact is fine.",
+      "expect_gate": "pass",
+      "must_include_any": [["Academic Support", "check", "can't confirm", "don't have"]]
+    },
+    {
+      "id": "C4", "zone": "A", "lang": "ko",
+      "question": "휴학 신청 기간이 언제야?",
+      "basis": "아주대학교 휴/복학 안내 · 휴학 종류. 10/28 재점검: 새 28페이지(10/25 병합)로 근거가 생김 (C-prompt → A)",
+      "expected": "휴학 종류마다 다름: 일반휴학은 미등록이면 직전 학기 종강일 이후부터 수업일수 4분의 1선까지, 등록 후 휴학은 수업일수 4분의 3선까지.",
+      "expect_gate": "pass",
+      "must_include_any": [["4분의 1", "1/4"]],
+      "cites_source": true
     },
     {
       "id": "C5", "zone": "C-prompt", "lang": "ko",
@@ -155,11 +153,12 @@
     {
       "id": "C6", "zone": "C-prompt", "lang": "ko",
       "question": "소프트웨어학과 한 학기 등록금은 얼마야?",
-      "basis": "없음 (학칙 등록·등록금심의위원회 조항은 검색될 수 있으나 금액 없음)",
-      "expected": "금액을 지어내지 말고 담당 부서·포탈 안내.",
+      "basis": "없음 — 국내생 등록금 금액은 코퍼스에 없음. 유학생 학비·생활비 안내(소프트웨어융합대학 4,916,000원)가 검색됨 (10/28 재점검: 새 28페이지(10/25 병합), 100문항 49번과 같은 함정)",
+      "expected": "유학생 학비를 일반 등록금처럼 말하면 오답. 금액을 말하려면 유학생 기준이라고 밝히고, 등록금은 포탈 고지서·담당 부서 확인 안내.",
       "expect_gate": "pass",
-      "must_include_any": [["학사지원팀", "포탈", "담당", "확인"]],
-      "must_not_include": ["만원", "만 원"]
+      "must_include_any": [["학사지원팀", "포탈", "담당", "확인", "고지서"]],
+      "must_not_include": ["만원", "만 원"],
+      "watch_for": ["491", "4,916,000"]
     },
     {
       "id": "D1", "zone": "D", "lang": "ko",
