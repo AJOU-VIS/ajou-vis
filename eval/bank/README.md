@@ -15,6 +15,7 @@ server\.venv\Scripts\python eval\bank\run_bank.py --fill eval\bank\results\<결�
 - 전체 실행은 답변 200회와 채점 초안 200회를 호출한다. `claude-opus-5`(effort low) 기준 약 $8.
 - `--rejudge`: 저장된 답변으로 채점 초안만 다시 만든다 (채점 지시를 고쳤을 때). `--suspect`를 붙이면 X·확신 낮음·한·영 판정이 갈린 초안만 다시 채점한다. 검색결과 본문은 같은 검색어로 다시 찾아 복원한다.
 - `--resume`: 크레딧 부족 등으로 멈춘 실행을 이어서 돌린다. 답변은 하나마다 저장된다.
+- `--no-rag`: RAG 전후 비교용. 검색·게이트 없이 같은 치토 역할·말투·길이만 주고 Claude 혼자 답하게 한다. 결과 파일 이름 끝에 `_norag`가 붙고, 문항집에는 기록하지 않는다.
 - `--fill`: 검토를 반영한 판정을 문항집에 쓴다. 한국어 → `문항집` 시트 J·K·L 열(정답·근거 제시·응답 요약), 영어 → `영어 채점` 시트. `집계` 시트는 한국어 기준으로 자동 계산된다.
 - 사전 조건: 스모크와 같음 (`server/.env`, `corpus/chroma_db`) + `openpyxl` (`server\.venv\Scripts\python -m pip install openpyxl`).
 

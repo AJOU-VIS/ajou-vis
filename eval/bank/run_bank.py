@@ -7,6 +7,7 @@
 실행 (저장소 루트에서, cmd):
   server\\.venv\\Scripts\\python eval\\bank\\run_bank.py                       한·영 100문항씩 + 채점 초안
   server\\.venv\\Scripts\\python eval\\bank\\run_bank.py --lang ko --only 1,2  일부만
+  server\\.venv\\Scripts\\python eval\\bank\\run_bank.py --lang ko --no-rag  RAG 전후 비교용: 검색 없이 Claude 혼자 답함
   server\\.venv\\Scripts\\python eval\\bank\\run_bank.py --resume eval\\bank\\results\\<결과>.json    멈춘 실행 이어서 (끝난 문항은 건너뜀)
   server\\.venv\\Scripts\\python eval\\bank\\run_bank.py --rejudge eval\\bank\\results\\<결과>.json   채점 초안만 다시 (답변은 그대로)
   server\\.venv\\Scripts\\python eval\\bank\\run_bank.py --fill eval\\bank\\results\\<결과>.json      검토 반영 판정을 문항집에 기록
@@ -51,9 +52,19 @@ JUDGE_SYSTEM = """너는 아주대학교 캠퍼스 안내 음성 비서 '치토'
 - 검색결과 본문에 있는 사실은 기대 정답에 없어도 지어낸 것으로 보지 않는다. 검색결과에도 기대 정답에도 없는 수치·사실을 단정했을 때만 지어낸 것이다.
 - 도서관 좌석 질문은 검색결과 대신 도서관 실시간 좌석 데이터로 답한다. 이때 좌석 수치는 실시간 데이터에서 온 것으로 본다.
 - 판정 기준이 애매하거나 답이 부분적으로만 맞으면 confidence를 low로 한다.
+- wrong_claim: 정답이 X일 때, 틀리거나 근거 없는 사실·수치·부서를 단정했으면 true. 답을 보류했거나 내용이 부족해서 X면 false. 정답이 O면 false.
 
 JSON 한 줄로만 답한다 (설명·코드블록 없이):
-{"correct": "O|X", "evidence": "O|X|NA", "confidence": "high|low", "reason": "판정 이유 한국어 한 문장", "summary": "실제 응답 요약 한국어 한 줄(40자 안팎)"}"""
+{"correct": "O|X", "evidence": "O|X|NA", "wrong_claim": true|false, "confidence": "high|low", "reason": "판정 이유 한국어 한 문장", "summary": "실제 응답 요약 한국어 한 줄(40자 안팎)"}"""
+
+# RAG 전후 비교의 '전': 같은 치토 역할·말투·길이를 주되 검색결과와 근거 규칙은 주지 않는다 (일반 챗봇과 같은 조건)
+NO_RAG_SYSTEM = {
+    "ko": "너는 아주대학교 캠퍼스 안내 비서 '치토'다. 재학생과 외국인 학생의 학사 규정·행정 절차·캠퍼스 시설 질문에 답한다. "
+          "음성으로 읽히므로 마크다운·목록·괄호 없이 친근한 해요체 두 문장, 80자 안팎으로 답한다.",
+    "en": "You are 'Chito,' Ajou University's campus guide assistant. You answer enrolled and international students' questions about "
+          "academic regulations, administrative procedures, and campus facilities. Your answer is read aloud, so reply in two friendly "
+          "sentences of about 30 words, with no markdown, lists, or parentheses.",
+}
 
 
 def load_bank() -> list[dict]:
@@ -86,6 +97,27 @@ class StopRun(Exception):
 
 def is_fatal(error: str) -> bool:
     return any(k in error for k in ("credit balance", "AuthenticationError", "PermissionDeniedError"))
+
+
+def run_no_rag(llm, q: dict, lang: str) -> dict:
+    """검색·게이트 없이 Claude 혼자 답한다 (RAG 전후 비교의 '전'). 기록 형식은 run_case와 같게 맞춘다."""
+    t = time.time()
+    answer, error, calls = "", None, []
+    try:
+        resp = llm._get_client().messages.create(**llm._build_kwargs(NO_RAG_SYSTEM[lang], q[lang], 300))
+        answer = next((b.text for b in resp.content if b.type == "text"), "").strip()
+        calls.append({"stage": "answer", "input_tokens": resp.usage.input_tokens, "output_tokens": resp.usage.output_tokens,
+                      "stop_reason": resp.stop_reason, "text": answer, "seconds": round(time.time() - t, 2)})
+    except Exception as e:  # 한 문항 실패가 전체 실행을 멈추지 않게 (크레딧·인증 오류는 호출부에서 멈춤)
+        error = f"{type(e).__name__}: {e}"
+    return {
+        "id": f"{q['no']}-{lang}", "zone": q["zone"], "lang": lang, "answer_lang": lang,
+        "question": q[lang], "history": [], "basis": f"{q['doc']} · {q['ref']}", "expected": q["answer"],
+        "path": "no_rag", "smalltalk": None, "rewritten": None, "need_search": False, "search_query": None,
+        "gate": None, "top_score": 0.0, "hits": [], "answer": answer, "chars": len(answer), "words": len(answer.split()),
+        "raw_answer": answer, "error": error, "seconds": round(time.time() - t, 2), "llm_calls": calls,
+        "auto_pass": not error, "issues": [f"오류: {error}"] if error else [], "warnings": [],
+    }
 
 
 def judge_context(hits, seat: bool) -> str:
@@ -293,6 +325,7 @@ def main():
     ap.add_argument("--only", help="문항 번호, 쉼표 구분 (예: 1,2,49)")
     ap.add_argument("--model", help="LLM_MODEL 덮어쓰기 (답변·채점 모두)")
     ap.add_argument("--no-judge", action="store_true", help="채점 초안 없이 답변만")
+    ap.add_argument("--no-rag", action="store_true", help="RAG 전후 비교용: 검색·게이트 없이 Claude 혼자 답함 (문항집에는 기록하지 않음)")
     ap.add_argument("--resume", metavar="RESULT_JSON", help="멈춘 실행을 이어서 (끝난 문항은 건너뜀)")
     ap.add_argument("--rejudge", metavar="RESULT_JSON", help="저장된 답변으로 채점 초안만 다시")
     ap.add_argument("--suspect", action="store_true",
@@ -379,7 +412,7 @@ def main():
                    and (args.no_judge or (r.get("judge") or {}).get("correct") in ("O", "X"))]
     else:
         started = datetime.now()
-        out_json = RESULTS / f"bank_{started.strftime('%Y%m%d-%H%M')}_{llm.MODEL}.json"
+        out_json = RESULTS / f"bank_{started.strftime('%Y%m%d-%H%M')}_{llm.MODEL}{'_norag' if args.no_rag else ''}.json"
         records = []
     done = {r["id"] for r in records}
 
@@ -388,7 +421,7 @@ def main():
         meta = {
             "started": started.strftime("%Y-%m-%d %H:%M"), "model": llm.MODEL, "effort": llm.EFFORT,
             "threshold": gate.SCORE_THRESHOLD, "prompt_version": smoke.prompt_version(), "git": smoke.git_info(),
-            "count": len({r["no"] for r in records}), "complete": complete,
+            "count": len({r["no"] for r in records}), "complete": complete, "no_rag": args.no_rag,
             "usd_answer": usd or 0.0, "usd_judge": judge_usd(llm.MODEL, records),
         }
         data = {"meta": meta, "results": records}
@@ -398,14 +431,18 @@ def main():
     todo = [(q, lang) for q in bank for lang in langs if f"{q['no']}-{lang}" not in done]
     print(f"100문항 평가 {len(todo)}건 남음 (끝난 {len(done)}건) · {llm.MODEL} (effort {llm.EFFORT})", flush=True)
     for q, lang in todo:
-        rec = smoke.run_case(to_case(q, lang), client, trace, app, smalltalk, gate, dry_run=False)
+        if args.no_rag:
+            rec = run_no_rag(llm, q, lang)
+        else:
+            rec = smoke.run_case(to_case(q, lang), client, trace, app, smalltalk, gate, dry_run=False)
         rec.update(no=q["no"], area=q["area"], type=q["type"], criteria=q["criteria"])
         if rec.get("error") and is_fatal(rec["error"]):
             save(complete=False)
             sys.exit(f"API 오류로 멈춤 ({rec['error'][:120]}) — 크레딧·키를 확인한 뒤 --resume {out_json}")
         try:
             if not args.no_judge:
-                context = judge_context(trace.hits, realtime.is_seat_question(rec["question"]))
+                context = ("(검색 없이 모델 자체 지식으로 답함 — 검색결과 없음)" if args.no_rag
+                           else judge_context(trace.hits, realtime.is_seat_question(rec["question"])))
                 rec["judge"] = judge(judge_client, llm.MODEL, llm.EFFORT, q, rec, context)
         except StopRun as e:
             save(complete=False)
