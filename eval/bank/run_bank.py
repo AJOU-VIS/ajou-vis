@@ -48,6 +48,8 @@ JUDGE_SYSTEM = """너는 아주대학교 캠퍼스 안내 음성 비서 '치토'
 - 근거 제시 O/X/NA: 답변이 근거 문서·조항·안내 페이지 이름을 밝혔으면 O, 안 밝혔으면 X. 함정-무근거 문항, 범위 밖 요청(구간 D), 근거가 없어 보류한 답은 NA.
 - 답변이 영어여도 같은 기준이다. 한국어 문서명을 영어로 옮겨 말한 것도 근거 제시로 본다.
 - 판정 기준이 허용하는 표현 차이와 맞는 추가 사실은 문제 삼지 않는다. 기대 정답에 없는 사실을 지어냈거나 수치가 틀리면 X.
+- 검색결과 본문에 있는 사실은 기대 정답에 없어도 지어낸 것으로 보지 않는다. 검색결과에도 기대 정답에도 없는 수치·사실을 단정했을 때만 지어낸 것이다.
+- 도서관 좌석 질문은 검색결과 대신 도서관 실시간 좌석 데이터로 답한다. 이때 좌석 수치는 실시간 데이터에서 온 것으로 본다.
 - 판정 기준이 애매하거나 답이 부분적으로만 맞으면 confidence를 low로 한다.
 
 JSON 한 줄로만 답한다 (설명·코드블록 없이):
@@ -86,8 +88,15 @@ def is_fatal(error: str) -> bool:
     return any(k in error for k in ("credit balance", "AuthenticationError", "PermissionDeniedError"))
 
 
-def judge(client, model: str, effort: str | None, q: dict, rec: dict) -> dict:
-    hits = "\n".join(f"- {h['source']} | {h['article']}" for h in rec["hits"]) or "(검색 안 함 또는 게이트 차단)"
+def judge_context(hits, seat: bool) -> str:
+    """채점자에게 보여 줄 이번 턴 근거 — 검색결과 상위 3개 본문 (실시간 좌석 질문은 그렇다고 알림)."""
+    if seat:
+        return "(도서관 실시간 좌석 질문 — 검색결과 대신 도서관 실시간 좌석 데이터로 답함)"
+    return "\n".join(f"- [{h.source_name} | {h.article}] {h.text.replace(chr(10), ' ')[:500]}" for h in hits[:3]) \
+        or "(검색 안 함 또는 게이트 차단)"
+
+
+def judge(client, model: str, effort: str | None, q: dict, rec: dict, context: str) -> dict:
     user = (
         f"[문항 {q['no']} · {q['area']} · {q['type']} · 구간 {q['zone']}]\n"
         f"질문({rec['lang']}): {rec['question']}\n"
@@ -95,7 +104,7 @@ def judge(client, model: str, effort: str | None, q: dict, rec: dict) -> dict:
         f"근거 문서: {q['doc']} · {q['ref']}\n"
         f"정답 판정 기준: {q['criteria']}\n\n"
         f"[치토의 답변]\n{rec['answer'] or '(답변 없음: ' + str(rec.get('error')) + ')'}\n\n"
-        f"[참고: 이번 턴 검색결과 상위 3개]\n{hits}"
+        f"[참고: 이번 턴 근거 — 검색결과 상위 3개 본문]\n{context}"
     )
     kwargs = {"model": model, "max_tokens": 300, "system": JUDGE_SYSTEM,
               "messages": [{"role": "user", "content": user}]}
@@ -154,8 +163,9 @@ def rates(recs: list[dict], review: dict) -> dict:
 
 def judge_usd(model: str, recs: list[dict]) -> float:
     price = smoke.PRICES.get(model, (0, 0))
-    tin = sum((r.get("judge") or {}).get("tokens", [0, 0])[0] for r in recs)
-    tout = sum((r.get("judge") or {}).get("tokens", [0, 0])[1] for r in recs)
+    drafts = [j for r in recs for j in [r.get("judge") or {}, *r.get("judge_prev", [])]]
+    tin = sum(j.get("tokens", [0, 0])[0] for j in drafts)
+    tout = sum(j.get("tokens", [0, 0])[1] for j in drafts)
     return (tin * price[0] + tout * price[1]) / 1_000_000
 
 
@@ -285,6 +295,8 @@ def main():
     ap.add_argument("--no-judge", action="store_true", help="채점 초안 없이 답변만")
     ap.add_argument("--resume", metavar="RESULT_JSON", help="멈춘 실행을 이어서 (끝난 문항은 건너뜀)")
     ap.add_argument("--rejudge", metavar="RESULT_JSON", help="저장된 답변으로 채점 초안만 다시")
+    ap.add_argument("--suspect", action="store_true",
+                    help="--rejudge 때 의심 가는 초안만 (X·해석 실패·확신 낮음·한·영 판정이 갈린 문항)")
     ap.add_argument("--fill", metavar="RESULT_JSON", help="검토 반영 판정을 문항집에 기록 (LLM 호출 없음)")
     args = ap.parse_args()
 
@@ -308,6 +320,7 @@ def main():
     import app
     import gate
     import llm
+    import realtime
     import rewriter
     import smalltalk
     from fastapi.testclient import TestClient
@@ -319,9 +332,26 @@ def main():
     if args.rejudge:
         path = Path(args.rejudge)
         data = json.loads(path.read_text(encoding="utf-8"))
-        for r in data["results"]:
-            r["judge"] = judge(judge_client, llm.MODEL, llm.EFFORT, q_by_no[r["no"]], r)
-        data["meta"]["usd_judge"] = judge_usd(llm.MODEL, data["results"])
+        recs = data["results"]
+        targets = recs
+        if args.suspect:
+            correct = {(r["no"], r["lang"]): (r.get("judge") or {}).get("correct") for r in recs}
+            split = {n for (n, _), c in correct.items() if c != correct.get((n, "en" if _ == "ko" else "ko"), c)}
+            targets = [r for r in recs if (r.get("judge") or {}).get("correct") != "O"
+                       or (r.get("judge") or {}).get("confidence") == "low" or r["no"] in split]
+        print(f"채점 초안 다시 {len(targets)}건 (검색결과 본문 포함)", flush=True)
+        for r in targets:
+            # 검색은 결정적이라 같은 검색어로 다시 찾으면 그때 본문을 복원할 수 있다 (스모크 --recheck와 같음)
+            query = r.get("search_query") or r.get("rewritten") or r["question"]
+            hits = app.retriever.search(query) if r["path"] in smoke.SEARCH_PATHS else []
+            context = judge_context(hits, realtime.is_seat_question(r["question"]))
+            if r.get("judge"):
+                r.setdefault("judge_prev", []).append(r["judge"])
+            r["judge"] = judge(judge_client, llm.MODEL, llm.EFFORT, q_by_no[r["no"]], r, context)
+            prev = r["judge_prev"][-1] if r.get("judge_prev") else {}
+            print(f"  {r['id']:<7} {prev.get('correct', '-')}/{prev.get('evidence', '-')} → "
+                  f"{r['judge']['correct']}/{r['judge']['evidence']} {r['judge']['confidence']}", flush=True)
+        data["meta"]["usd_judge"] = judge_usd(llm.MODEL, recs)
         path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
         write_report(data, path.with_suffix(".md"), {})
         print(f"채점 초안 다시: {path.with_suffix('.md').resolve().relative_to(ROOT)}")
@@ -375,7 +405,8 @@ def main():
             sys.exit(f"API 오류로 멈춤 ({rec['error'][:120]}) — 크레딧·키를 확인한 뒤 --resume {out_json}")
         try:
             if not args.no_judge:
-                rec["judge"] = judge(judge_client, llm.MODEL, llm.EFFORT, q, rec)
+                context = judge_context(trace.hits, realtime.is_seat_question(rec["question"]))
+                rec["judge"] = judge(judge_client, llm.MODEL, llm.EFFORT, q, rec, context)
         except StopRun as e:
             save(complete=False)
             sys.exit(f"API 오류로 멈춤 ({str(e)[:120]}) — 크레딧·키를 확인한 뒤 --resume {out_json}")
