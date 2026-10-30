@@ -23,6 +23,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 import gate
+import latency_log
 import llm
 import prompts_loader
 import rewriter
@@ -131,6 +132,7 @@ def warmup():
 
 @app.post("/v1/chat/completions")
 def chat_completions(req: ChatRequest):
+    T = latency_log.start()
     history, utterance = _split_request(req.messages)
     if not utterance:
         return _respond("질문을 인식하지 못했어요. 다시 말씀해 주세요!", req)
@@ -145,7 +147,8 @@ def chat_completions(req: ChatRequest):
         user_msg = prompts_loader.user_turn(
             history=history, lang=lang, question=utterance, context="",
         ) + "\n\n" + smalltalk.NOTE.get(lang, smalltalk.NOTE["en"])
-        return _llm_respond(system, user_msg, max_tokens, req)
+        T["path"] = "smalltalk"
+        return _llm_respond(system, user_msg, max_tokens, req, T)
 
     # ④ 좌석 질문은 벡터 검색 대신 도서관 API를 직접 호출한다 (분 단위로 바뀌는 값).
     # 원문에서 먼저 보고(LLM 호출 없이), 아니면 팔로업 재작성 결과에서도 본다
@@ -157,16 +160,23 @@ def chat_completions(req: ChatRequest):
         # 팔로업 재작성 → 검색 필요 여부 판정
         question, need_search = rewriter.rewrite(history, utterance, llm.chat)
         is_seat = need_search and realtime.is_seat_question(question)
+    latency_log.mark(T, "t_rewrite")
 
     if is_seat:
+        T["path"] = "seats"
         context = realtime.format_seat_context()
+        latency_log.mark(T, "t_search")
         if not context:
+            latency_log.log(T)
             return _respond(gate.deferral_message(lang), req)
     else:
         # ② 검색 → ① 신뢰도 게이트 (영어 질문은 한국어 검색어로 옮겨 검색한다)
         hits = (retriever.search(rewriter.search_query(question, lang, llm.chat))
                 if need_search else [])
+        latency_log.mark(T, "t_search")
         if need_search and not gate.passes(hits):
+            T["path"] = "gate_block"
+            latency_log.log(T)
             return _respond(gate.deferral_message(lang), req)
         context = format_context(hits)
 
@@ -176,12 +186,14 @@ def chat_completions(req: ChatRequest):
         context=context,
     )
     
-    return _llm_respond(system, user_msg, max_tokens, req)
+    return _llm_respond(system, user_msg, max_tokens, req, T)
 
-def _llm_respond(system: str, user_msg: str, max_tokens: int, req: ChatRequest):
+def _llm_respond(system: str, user_msg: str, max_tokens: int, req: ChatRequest, T=None):
     if req.stream:
-        pieces = sentence_limit.limit_stream(
-            llm.chat_stream(system=system, user=user_msg, max_tokens=max_tokens))
+        latency_log.mark(T, "t_llm_start")
+        raw = latency_log.mark_first(
+            llm.chat_stream(system=system, user=user_msg, max_tokens=max_tokens), T, "t_first_token")
+        pieces = latency_log.mark_first(sentence_limit.limit_stream(raw), T, "t_first_piece", log_it=True)
         return StreamingResponse(_stream_pieces(pieces, req.model),
                                  media_type="text/event-stream")
 
