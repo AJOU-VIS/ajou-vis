@@ -38,12 +38,22 @@ def _d(t: dict[str, Any], a: str, b: str) -> str:
     return f"{t[b] - t[a]:.2f}" if a in t and b in t else "-"
 
 
+def _rw(t: dict[str, Any]) -> str:
+    """재작성 시간. 관문이 켜져 있으면 생략/호출 이유를 같이 적는다."""
+    d = _d(t, 't0', 't_rewrite')
+    if t.get('rw_skip'):
+        return f"생략({t['rw_skip']}) {d}"
+    if t.get('rw_why'):
+        return f"{d}[{t['rw_why']}]"
+    return d
+
+
 def log(t: dict[str, Any] | None) -> None:
     if t is None:
         return
     print(
         f"[timing] 경로={t.get('path', '?')}"
-        f" | 재작성 {_d(t, 't0', 't_rewrite')}"
+        f" | 재작성 {_rw(t)}"
         f" | 검색·게이트 {_d(t, 't_rewrite', 't_search')}"
         f" | Claude 첫 토큰 {_d(t, 't_llm_start', 't_first_token')}"
         f" | 요청→첫 조각 {_d(t, 't0', 't_first_piece')} (초)",

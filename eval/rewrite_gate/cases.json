@@ -1,0 +1,1003 @@
+{
+ "about": "재작성 우회 관문 시험 세트. label: followup(꼬리질문 — 재작성 필요), format(형태 변경 — NO_SEARCH), standalone(독립 질문 — 재작성 불필요). gold_docs는 정답 근거 문서명(출처 이름에 포함되는 글자). 꼬리질문의 expected_question은 사람이 쓴 이상적 재작성이므로 확인이 필요하다.",
+ "cases": [
+  {
+   "id": "F01",
+   "label": "followup",
+   "messages": [
+    {
+     "role": "user",
+     "content": "학부생은 휴학을 통산 몇 년까지 할 수 있어?"
+    },
+    {
+     "role": "assistant",
+     "content": "학칙 제32조에 따르면 1회에 2학기, 통산 4년을 넘을 수 없어요."
+    },
+    {
+     "role": "user",
+     "content": "그럼 복학은?"
+    }
+   ],
+   "utterance": "그럼 복학은?",
+   "expected_question": "휴학한 뒤 복학은 어떻게 해?",
+   "gold_docs": [
+    "휴/복학",
+    "학칙"
+   ],
+   "note": "",
+   "split": "dev"
+  },
+  {
+   "id": "F02",
+   "label": "followup",
+   "messages": [
+    {
+     "role": "user",
+     "content": "학부생은 휴학을 통산 몇 년까지 할 수 있어?"
+    },
+    {
+     "role": "assistant",
+     "content": "학칙 제32조에 따르면 1회에 2학기, 통산 4년을 넘을 수 없어요."
+    },
+    {
+     "role": "user",
+     "content": "신청 기간은 언제야?"
+    }
+   ],
+   "utterance": "신청 기간은 언제야?",
+   "expected_question": "휴학 신청 기간은 언제야?",
+   "gold_docs": [
+    "휴/복학"
+   ],
+   "note": "",
+   "split": "test"
+  },
+  {
+   "id": "F03",
+   "label": "followup",
+   "messages": [
+    {
+     "role": "user",
+     "content": "장학금은 어떤 방식으로 지급돼?"
+    },
+    {
+     "role": "assistant",
+     "content": "원칙적으로는 등록금을 고지할 때 장학금액만큼 감면하여 고지해요."
+    },
+    {
+     "role": "user",
+     "content": "신청은 어떻게 해?"
+    }
+   ],
+   "utterance": "신청은 어떻게 해?",
+   "expected_question": "장학금 신청은 어떻게 해?",
+   "gold_docs": [
+    "장학"
+   ],
+   "note": "",
+   "split": "dev"
+  },
+  {
+   "id": "F04",
+   "label": "followup",
+   "messages": [
+    {
+     "role": "user",
+     "content": "조기졸업하려면 학점 평균이 몇 이상이어야 해?"
+    },
+    {
+     "role": "assistant",
+     "content": "학칙 제51조에 따르면 누계평점평균이 3.75 이상이어야 해요."
+    },
+    {
+     "role": "user",
+     "content": "신청은 언제까지 해야 해?"
+    }
+   ],
+   "utterance": "신청은 언제까지 해야 해?",
+   "expected_question": "조기졸업 신청은 언제까지 해야 해?",
+   "gold_docs": [
+    "졸업"
+   ],
+   "note": "",
+   "split": "test"
+  },
+  {
+   "id": "F05",
+   "label": "followup",
+   "messages": [
+    {
+     "role": "user",
+     "content": "기숙사 세탁실은 몇 층이야?"
+    },
+    {
+     "role": "assistant",
+     "content": "기숙사 안내에 따르면 세탁실은 각 관 및 식당동 지하 1층에 있어요."
+    },
+    {
+     "role": "user",
+     "content": "샤워실은?"
+    }
+   ],
+   "utterance": "샤워실은?",
+   "expected_question": "기숙사 샤워실은 어디에 있어?",
+   "gold_docs": [
+    "기숙사"
+   ],
+   "note": "",
+   "split": "dev"
+  },
+  {
+   "id": "F06",
+   "label": "followup",
+   "messages": [
+    {
+     "role": "user",
+     "content": "교내에 CU 편의점은 어디에 있어?"
+    },
+    {
+     "role": "assistant",
+     "content": "성호관 1층, 일신관 지하 1층, 팔달관 1층에 있고 모두 24시간 운영해요."
+    },
+    {
+     "role": "user",
+     "content": "거기 몇 시까지 해?"
+    }
+   ],
+   "utterance": "거기 몇 시까지 해?",
+   "expected_question": "교내 CU 편의점은 몇 시까지 운영해?",
+   "gold_docs": [
+    "편의시설"
+   ],
+   "note": "",
+   "split": "test"
+  },
+  {
+   "id": "F07",
+   "label": "followup",
+   "messages": [
+    {
+     "role": "user",
+     "content": "전과 신청 기간은 언제야?"
+    },
+    {
+     "role": "assistant",
+     "content": "1학기 전과는 11월 중, 2학기 전과는 5월 중에 신청해요."
+    },
+    {
+     "role": "user",
+     "content": "장학금은 어떻게 돼?"
+    }
+   ],
+   "utterance": "장학금은 어떻게 돼?",
+   "expected_question": "전과하면 장학금은 어떻게 돼?",
+   "gold_docs": [
+    "전과"
+   ],
+   "note": "신호 없는 어려운 꼬리질문 (장학금 일반 질문처럼 보임)",
+   "split": "dev"
+  },
+  {
+   "id": "F08",
+   "label": "followup",
+   "messages": [
+    {
+     "role": "user",
+     "content": "등록금은 어떻게 납부해?"
+    },
+    {
+     "role": "assistant",
+     "content": "개인별 가상계좌로 계좌이체하거나 고지서를 출력해 은행에서 납부해요."
+    },
+    {
+     "role": "user",
+     "content": "환불은?"
+    }
+   ],
+   "utterance": "환불은?",
+   "expected_question": "등록금 환불은 어떻게 돼?",
+   "gold_docs": [
+    "등록",
+    "휴/복학"
+   ],
+   "note": "",
+   "split": "test"
+  },
+  {
+   "id": "F09",
+   "label": "followup",
+   "messages": [
+    {
+     "role": "user",
+     "content": "인터넷으로 증명서 뽑으면 한 장에 얼마야?"
+    },
+    {
+     "role": "assistant",
+     "content": "재학생은 한 장에 1,500원이에요."
+    },
+    {
+     "role": "user",
+     "content": "졸업생은?"
+    }
+   ],
+   "utterance": "졸업생은?",
+   "expected_question": "졸업생이 인터넷으로 증명서를 뽑으면 한 장에 얼마야?",
+   "gold_docs": [
+    "증명서"
+   ],
+   "note": "",
+   "split": "dev"
+  },
+  {
+   "id": "F10",
+   "label": "followup",
+   "messages": [
+    {
+     "role": "user",
+     "content": "한 학기에 최대 몇 학점까지 신청할 수 있어?"
+    },
+    {
+     "role": "assistant",
+     "content": "학번에 따라 달라요. 2004학번부터는 19학점까지 신청할 수 있어요."
+    },
+    {
+     "role": "user",
+     "content": "소프트웨어학과는?"
+    }
+   ],
+   "utterance": "소프트웨어학과는?",
+   "expected_question": "소프트웨어학과는 한 학기에 최대 몇 학점까지 신청할 수 있어?",
+   "gold_docs": [
+    "수강신청"
+   ],
+   "note": "신호 없는 어려운 꼬리질문",
+   "split": "test"
+  },
+  {
+   "id": "F11",
+   "label": "followup",
+   "messages": [
+    {
+     "role": "user",
+     "content": "학사경고는 어떤 경우에 받게 돼?"
+    },
+    {
+     "role": "assistant",
+     "content": "평점평균이 1.75 미만이거나 F학점이 6학점 이상이면 받아요."
+    },
+    {
+     "role": "user",
+     "content": "그럼 제적은?"
+    }
+   ],
+   "utterance": "그럼 제적은?",
+   "expected_question": "학사경고를 받으면 제적은 어떻게 돼?",
+   "gold_docs": [
+    "제적",
+    "학칙"
+   ],
+   "note": "",
+   "split": "dev"
+  },
+  {
+   "id": "F12",
+   "label": "followup",
+   "messages": [
+    {
+     "role": "user",
+     "content": "자퇴하고 나서 재입학은 언제부터 신청할 수 있어?"
+    },
+    {
+     "role": "assistant",
+     "content": "자퇴한 다음 학기부터 신청할 수 있어요."
+    },
+    {
+     "role": "user",
+     "content": "신청 기간은?"
+    }
+   ],
+   "utterance": "신청 기간은?",
+   "expected_question": "재입학 신청 기간은 언제야?",
+   "gold_docs": [
+    "제적",
+    "재입학"
+   ],
+   "note": "",
+   "split": "test"
+  },
+  {
+   "id": "F13",
+   "label": "followup",
+   "messages": [
+    {
+     "role": "user",
+     "content": "도서관에 자리 있어?"
+    },
+    {
+     "role": "assistant",
+     "content": "네, 2층 커뮤니티라운지는 152석, 3층 스터디라운지는 203석이 남아 있어요."
+    },
+    {
+     "role": "user",
+     "content": "3층은?"
+    }
+   ],
+   "utterance": "3층은?",
+   "expected_question": "3층 스터디라운지에 자리 있어?",
+   "gold_docs": [],
+   "note": "좌석 경로(검색 안 함)",
+   "split": "dev"
+  },
+  {
+   "id": "F14",
+   "label": "followup",
+   "messages": [
+    {
+     "role": "user",
+     "content": "졸업하려면 어학 인증이 꼭 필요해?"
+    },
+    {
+     "role": "assistant",
+     "content": "어학졸업인증제가 있고 기준을 못 채우면 대체과목을 이수해요."
+    },
+    {
+     "role": "user",
+     "content": "면제되는 경우도 있어?"
+    }
+   ],
+   "utterance": "면제되는 경우도 있어?",
+   "expected_question": "어학졸업인증이 면제되는 경우도 있어?",
+   "gold_docs": [
+    "졸업"
+   ],
+   "note": "신호 없는 어려운 꼬리질문",
+   "split": "test"
+  },
+  {
+   "id": "F15",
+   "label": "followup",
+   "messages": [
+    {
+     "role": "user",
+     "content": "스쿼시는 얼마야?"
+    },
+    {
+     "role": "assistant",
+     "content": "학생은 1시간에 2,000원이에요."
+    },
+    {
+     "role": "user",
+     "content": "테니스는?"
+    }
+   ],
+   "utterance": "테니스는?",
+   "expected_question": "테니스장은 얼마야?",
+   "gold_docs": [
+    "체육시설"
+   ],
+   "note": "",
+   "split": "dev"
+  },
+  {
+   "id": "G01",
+   "label": "format",
+   "messages": [
+    {
+     "role": "user",
+     "content": "학부생은 휴학을 통산 몇 년까지 할 수 있어?"
+    },
+    {
+     "role": "assistant",
+     "content": "학칙 제32조에 따르면 1회에 2학기, 통산 4년을 넘을 수 없어요."
+    },
+    {
+     "role": "user",
+     "content": "방금 답 영어로 말해줘"
+    }
+   ],
+   "utterance": "방금 답 영어로 말해줘",
+   "expected_question": "[NO_SEARCH]",
+   "gold_docs": [],
+   "note": "",
+   "split": "dev"
+  },
+  {
+   "id": "G02",
+   "label": "format",
+   "messages": [
+    {
+     "role": "user",
+     "content": "장학금은 어떤 방식으로 지급돼?"
+    },
+    {
+     "role": "assistant",
+     "content": "원칙적으로는 등록금을 고지할 때 장학금액만큼 감면하여 고지해요."
+    },
+    {
+     "role": "user",
+     "content": "더 짧게 말해줘"
+    }
+   ],
+   "utterance": "더 짧게 말해줘",
+   "expected_question": "[NO_SEARCH]",
+   "gold_docs": [],
+   "note": "",
+   "split": "test"
+  },
+  {
+   "id": "G03",
+   "label": "format",
+   "messages": [
+    {
+     "role": "user",
+     "content": "조기졸업하려면 학점 평균이 몇 이상이어야 해?"
+    },
+    {
+     "role": "assistant",
+     "content": "학칙 제51조에 따르면 누계평점평균이 3.75 이상이어야 해요."
+    },
+    {
+     "role": "user",
+     "content": "다시 한 번 말해줘"
+    }
+   ],
+   "utterance": "다시 한 번 말해줘",
+   "expected_question": "[NO_SEARCH]",
+   "gold_docs": [],
+   "note": "",
+   "split": "dev"
+  },
+  {
+   "id": "G04",
+   "label": "format",
+   "messages": [
+    {
+     "role": "user",
+     "content": "인터넷으로 증명서 뽑으면 한 장에 얼마야?"
+    },
+    {
+     "role": "assistant",
+     "content": "재학생은 한 장에 1,500원이에요."
+    },
+    {
+     "role": "user",
+     "content": "좀 더 쉽게 설명해줘"
+    }
+   ],
+   "utterance": "좀 더 쉽게 설명해줘",
+   "expected_question": "[NO_SEARCH]",
+   "gold_docs": [],
+   "note": "",
+   "split": "test"
+  },
+  {
+   "id": "G05",
+   "label": "format",
+   "messages": [
+    {
+     "role": "user",
+     "content": "What GPA puts an undergraduate on academic warning?"
+    },
+    {
+     "role": "assistant",
+     "content": "A semester GPA below 1.75 or six or more F credits puts you on warning."
+    },
+    {
+     "role": "user",
+     "content": "한국어로 다시 말해줘"
+    }
+   ],
+   "utterance": "한국어로 다시 말해줘",
+   "expected_question": "[NO_SEARCH]",
+   "gold_docs": [],
+   "note": "",
+   "split": "dev"
+  },
+  {
+   "id": "S01",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "학부생은 휴학을 통산 몇 년까지 할 수 있어?"
+    },
+    {
+     "role": "assistant",
+     "content": "학칙 제32조에 따르면 1회에 2학기, 통산 4년을 넘을 수 없어요."
+    },
+    {
+     "role": "user",
+     "content": "교내에 CU 편의점은 어디에 있어?"
+    }
+   ],
+   "utterance": "교내에 CU 편의점은 어디에 있어?",
+   "expected_question": "교내에 CU 편의점은 어디에 있어?",
+   "gold_docs": [
+    "편의시설"
+   ],
+   "note": "",
+   "split": "dev"
+  },
+  {
+   "id": "S02",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "장학금은 어떤 방식으로 지급돼?"
+    },
+    {
+     "role": "assistant",
+     "content": "원칙적으로는 등록금을 고지할 때 장학금액만큼 감면하여 고지해요."
+    },
+    {
+     "role": "user",
+     "content": "학사경고는 어떤 경우에 받게 돼?"
+    }
+   ],
+   "utterance": "학사경고는 어떤 경우에 받게 돼?",
+   "expected_question": "학사경고는 어떤 경우에 받게 돼?",
+   "gold_docs": [
+    "학칙"
+   ],
+   "note": "",
+   "split": "test"
+  },
+  {
+   "id": "S03",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "기숙사 세탁실은 몇 층이야?"
+    },
+    {
+     "role": "assistant",
+     "content": "기숙사 안내에 따르면 세탁실은 각 관 및 식당동 지하 1층에 있어요."
+    },
+    {
+     "role": "user",
+     "content": "조기졸업하려면 학점 평균이 몇 이상이어야 해?"
+    }
+   ],
+   "utterance": "조기졸업하려면 학점 평균이 몇 이상이어야 해?",
+   "expected_question": "조기졸업하려면 학점 평균이 몇 이상이어야 해?",
+   "gold_docs": [
+    "졸업",
+    "학칙"
+   ],
+   "note": "",
+   "split": "dev"
+  },
+  {
+   "id": "S04",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "교내에 CU 편의점은 어디에 있어?"
+    },
+    {
+     "role": "assistant",
+     "content": "성호관 1층, 일신관 지하 1층, 팔달관 1층에 있고 모두 24시간 운영해요."
+    },
+    {
+     "role": "user",
+     "content": "개강하고 45일쯤에 휴학하면 등록금 얼마 돌려받아?"
+    }
+   ],
+   "utterance": "개강하고 45일쯤에 휴학하면 등록금 얼마 돌려받아?",
+   "expected_question": "개강하고 45일쯤에 휴학하면 등록금 얼마 돌려받아?",
+   "gold_docs": [
+    "휴/복학",
+    "등록"
+   ],
+   "note": "",
+   "split": "test"
+  },
+  {
+   "id": "S05",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "등록금은 어떻게 납부해?"
+    },
+    {
+     "role": "assistant",
+     "content": "개인별 가상계좌로 계좌이체하거나 고지서를 출력해 은행에서 납부해요."
+    },
+    {
+     "role": "user",
+     "content": "전과 신청 기간은 언제야?"
+    }
+   ],
+   "utterance": "전과 신청 기간은 언제야?",
+   "expected_question": "전과 신청 기간은 언제야?",
+   "gold_docs": [
+    "전과"
+   ],
+   "note": "",
+   "split": "dev"
+  },
+  {
+   "id": "S06",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "학사경고는 어떤 경우에 받게 돼?"
+    },
+    {
+     "role": "assistant",
+     "content": "평점평균이 1.75 미만이거나 F학점이 6학점 이상이면 받아요."
+    },
+    {
+     "role": "user",
+     "content": "한 학기에 최대 몇 학점까지 신청할 수 있어?"
+    }
+   ],
+   "utterance": "한 학기에 최대 몇 학점까지 신청할 수 있어?",
+   "expected_question": "한 학기에 최대 몇 학점까지 신청할 수 있어?",
+   "gold_docs": [
+    "수강신청",
+    "학칙"
+   ],
+   "note": "",
+   "split": "test"
+  },
+  {
+   "id": "S07",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "인터넷으로 증명서 뽑으면 한 장에 얼마야?"
+    },
+    {
+     "role": "assistant",
+     "content": "재학생은 한 장에 1,500원이에요."
+    },
+    {
+     "role": "user",
+     "content": "기숙사 세탁실은 몇 층이야?"
+    }
+   ],
+   "utterance": "기숙사 세탁실은 몇 층이야?",
+   "expected_question": "기숙사 세탁실은 몇 층이야?",
+   "gold_docs": [
+    "기숙사"
+   ],
+   "note": "",
+   "split": "dev"
+  },
+  {
+   "id": "S08",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "전과 신청 기간은 언제야?"
+    },
+    {
+     "role": "assistant",
+     "content": "1학기 전과는 11월 중, 2학기 전과는 5월 중에 신청해요."
+    },
+    {
+     "role": "user",
+     "content": "무인증명서 발급기는 어디에 있어?"
+    }
+   ],
+   "utterance": "무인증명서 발급기는 어디에 있어?",
+   "expected_question": "무인증명서 발급기는 어디에 있어?",
+   "gold_docs": [
+    "증명서"
+   ],
+   "note": "",
+   "split": "test"
+  },
+  {
+   "id": "S09",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "조기졸업하려면 학점 평균이 몇 이상이어야 해?"
+    },
+    {
+     "role": "assistant",
+     "content": "학칙 제51조에 따르면 누계평점평균이 3.75 이상이어야 해요."
+    },
+    {
+     "role": "user",
+     "content": "신입생 장학금을 계속 받으려면 성적이 어느 정도 돼야 해?"
+    }
+   ],
+   "utterance": "신입생 장학금을 계속 받으려면 성적이 어느 정도 돼야 해?",
+   "expected_question": "신입생 장학금을 계속 받으려면 성적이 어느 정도 돼야 해?",
+   "gold_docs": [
+    "장학"
+   ],
+   "note": "",
+   "split": "dev"
+  },
+  {
+   "id": "S10",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "도서관에 자리 있어?"
+    },
+    {
+     "role": "assistant",
+     "content": "네, 2층 커뮤니티라운지는 152석, 3층 스터디라운지는 203석이 남아 있어요."
+    },
+    {
+     "role": "user",
+     "content": "자퇴하고 나서 재입학은 언제부터 신청할 수 있어?"
+    }
+   ],
+   "utterance": "자퇴하고 나서 재입학은 언제부터 신청할 수 있어?",
+   "expected_question": "자퇴하고 나서 재입학은 언제부터 신청할 수 있어?",
+   "gold_docs": [
+    "제적",
+    "재입학",
+    "학칙"
+   ],
+   "note": "",
+   "split": "test"
+  },
+  {
+   "id": "S11",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "한 학기에 최대 몇 학점까지 신청할 수 있어?"
+    },
+    {
+     "role": "assistant",
+     "content": "학번에 따라 달라요. 2004학번부터는 19학점까지 신청할 수 있어요."
+    },
+    {
+     "role": "user",
+     "content": "체력단련실 이용료는 얼마야?"
+    }
+   ],
+   "utterance": "체력단련실 이용료는 얼마야?",
+   "expected_question": "체력단련실 이용료는 얼마야?",
+   "gold_docs": [
+    "체육시설"
+   ],
+   "note": "",
+   "split": "dev"
+  },
+  {
+   "id": "S12",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "자퇴하고 나서 재입학은 언제부터 신청할 수 있어?"
+    },
+    {
+     "role": "assistant",
+     "content": "자퇴한 다음 학기부터 신청할 수 있어요."
+    },
+    {
+     "role": "user",
+     "content": "수원역에서 학교 오는 통학버스 첫차는 몇 시야?"
+    }
+   ],
+   "utterance": "수원역에서 학교 오는 통학버스 첫차는 몇 시야?",
+   "expected_question": "수원역에서 학교 오는 통학버스 첫차는 몇 시야?",
+   "gold_docs": [
+    "학교버스"
+   ],
+   "note": "",
+   "split": "test"
+  },
+  {
+   "id": "S13",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "스쿼시는 얼마야?"
+    },
+    {
+     "role": "assistant",
+     "content": "학생은 1시간에 2,000원이에요."
+    },
+    {
+     "role": "user",
+     "content": "8월에 졸업하면 학위수여식도 해?"
+    }
+   ],
+   "utterance": "8월에 졸업하면 학위수여식도 해?",
+   "expected_question": "8월에 졸업하면 학위수여식도 해?",
+   "gold_docs": [
+    "졸업"
+   ],
+   "note": "",
+   "split": "dev"
+  },
+  {
+   "id": "S14",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "학부생은 휴학을 통산 몇 년까지 할 수 있어?"
+    },
+    {
+     "role": "assistant",
+     "content": "학칙 제32조에 따르면 1회에 2학기, 통산 4년을 넘을 수 없어요."
+    },
+    {
+     "role": "user",
+     "content": "등록금은 어떻게 납부해?"
+    }
+   ],
+   "utterance": "등록금은 어떻게 납부해?",
+   "expected_question": "등록금은 어떻게 납부해?",
+   "gold_docs": [
+    "등록"
+   ],
+   "note": "",
+   "split": "test"
+  },
+  {
+   "id": "S15",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "기숙사 세탁실은 몇 층이야?"
+    },
+    {
+     "role": "assistant",
+     "content": "기숙사 안내에 따르면 세탁실은 각 관 및 식당동 지하 1층에 있어요."
+    },
+    {
+     "role": "user",
+     "content": "군대 가는데 휴학은 언제 신청해야 해?"
+    }
+   ],
+   "utterance": "군대 가는데 휴학은 언제 신청해야 해?",
+   "expected_question": "군대 가는데 휴학은 언제 신청해야 해?",
+   "gold_docs": [
+    "휴/복학",
+    "학칙"
+   ],
+   "note": "",
+   "split": "dev"
+  },
+  {
+   "id": "S16",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "등록금은 어떻게 납부해?"
+    },
+    {
+     "role": "assistant",
+     "content": "개인별 가상계좌로 계좌이체하거나 고지서를 출력해 은행에서 납부해요."
+    },
+    {
+     "role": "user",
+     "content": "학사학위취득유예는 몇 번까지 신청할 수 있어?"
+    }
+   ],
+   "utterance": "학사학위취득유예는 몇 번까지 신청할 수 있어?",
+   "expected_question": "학사학위취득유예는 몇 번까지 신청할 수 있어?",
+   "gold_docs": [
+    "졸업"
+   ],
+   "note": "",
+   "split": "test"
+  },
+  {
+   "id": "S17",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "학사경고는 어떤 경우에 받게 돼?"
+    },
+    {
+     "role": "assistant",
+     "content": "평점평균이 1.75 미만이거나 F학점이 6학점 이상이면 받아요."
+    },
+    {
+     "role": "user",
+     "content": "인터넷으로 증명서 뽑으면 한 장에 얼마야?"
+    }
+   ],
+   "utterance": "인터넷으로 증명서 뽑으면 한 장에 얼마야?",
+   "expected_question": "인터넷으로 증명서 뽑으면 한 장에 얼마야?",
+   "gold_docs": [
+    "증명서"
+   ],
+   "note": "",
+   "split": "dev"
+  },
+  {
+   "id": "S18",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "졸업하려면 어학 인증이 꼭 필요해?"
+    },
+    {
+     "role": "assistant",
+     "content": "어학졸업인증제가 있고 기준을 못 채우면 대체과목을 이수해요."
+    },
+    {
+     "role": "user",
+     "content": "다산관 식당은 주말에도 해?"
+    }
+   ],
+   "utterance": "다산관 식당은 주말에도 해?",
+   "expected_question": "다산관 식당은 주말에도 해?",
+   "gold_docs": [
+    "편의시설"
+   ],
+   "note": "",
+   "split": "test"
+  },
+  {
+   "id": "S19",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "장학금은 어떤 방식으로 지급돼?"
+    },
+    {
+     "role": "assistant",
+     "content": "원칙적으로는 등록금을 고지할 때 장학금액만큼 감면하여 고지해요."
+    },
+    {
+     "role": "user",
+     "content": "비자 연장은 어떻게 해?"
+    }
+   ],
+   "utterance": "비자 연장은 어떻게 해?",
+   "expected_question": "비자 연장은 어떻게 해?",
+   "gold_docs": [
+    "비자"
+   ],
+   "note": "",
+   "split": "dev"
+  },
+  {
+   "id": "S20",
+   "label": "standalone",
+   "messages": [
+    {
+     "role": "user",
+     "content": "교내에 CU 편의점은 어디에 있어?"
+    },
+    {
+     "role": "assistant",
+     "content": "성호관 1층, 일신관 지하 1층, 팔달관 1층에 있고 모두 24시간 운영해요."
+    },
+    {
+     "role": "user",
+     "content": "기숙사 봄축제는 언제 해?"
+    }
+   ],
+   "utterance": "기숙사 봄축제는 언제 해?",
+   "expected_question": "기숙사 봄축제는 언제 해?",
+   "gold_docs": [
+    "기숙사"
+   ],
+   "note": "",
+   "split": "test"
+  }
+ ]
+}

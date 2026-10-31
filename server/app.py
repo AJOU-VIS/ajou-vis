@@ -26,6 +26,7 @@ import gate
 import latency_log
 import llm
 import prompts_loader
+import rewrite_gate
 import rewriter
 import sentence_limit
 import smalltalk
@@ -52,6 +53,7 @@ class ChatRequest(BaseModel):
     max_tokens: int | None = None
     temperature: float | None = None  # 무시 (상위 LLM이 미지원)
     stream: bool = False
+    rewrite_gate: bool | None = None  # 실험: 재작성 우회 관문을 요청 단위로 켜고 끔 (없으면 환경변수 REWRITE_GATE)
 
 
 def _split_request(messages: list[Message]) -> tuple[str, str]:
@@ -153,12 +155,24 @@ def chat_completions(req: ChatRequest):
     # ④ 좌석 질문은 벡터 검색 대신 도서관 API를 직접 호출한다 (분 단위로 바뀌는 값).
     # 원문에서 먼저 보고(LLM 호출 없이), 아니면 팔로업 재작성 결과에서도 본다
     # ("그럼 3층은?" 같은 꼬리질문이 좌석 질문일 수 있다).
+    pre: dict = {}   # 재작성 관문이 미리 한 검색 결과 (재사용)
     is_seat = realtime.is_seat_question(utterance)
     if is_seat:
         question, need_search = utterance, True
     else:
-        # 팔로업 재작성 → 검색 필요 여부 판정
-        question, need_search = rewriter.rewrite(history, utterance, llm.chat)
+        # 팔로업 재작성 → 검색 필요 여부 판정 (실험: 독립 질문이면 재작성 호출을 건너뛴다)
+        do_rewrite = True
+        if history.strip() and rewrite_gate.enabled(req.rewrite_gate):
+            def _peek() -> float:
+                pre["q"] = utterance
+                pre["hits"] = retriever.search(utterance)
+                return max((h.score for h in pre["hits"]), default=0.0)
+            do_rewrite, why = rewrite_gate.decide(utterance, _peek)
+            T["rw_skip" if not do_rewrite else "rw_why"] = why
+        if do_rewrite:
+            question, need_search = rewriter.rewrite(history, utterance, llm.chat)
+        else:
+            question, need_search = utterance, True
         is_seat = need_search and realtime.is_seat_question(question)
     latency_log.mark(T, "t_rewrite")
 
@@ -171,8 +185,13 @@ def chat_completions(req: ChatRequest):
             return _respond(gate.deferral_message(lang), req)
     else:
         # ② 검색 → ① 신뢰도 게이트 (영어 질문은 한국어 검색어로 옮겨 검색한다)
-        hits = (retriever.search(rewriter.search_query(question, lang, llm.chat))
-                if need_search else [])
+        search_q = rewriter.search_query(question, lang, llm.chat) if need_search else ""
+        if not need_search:
+            hits = []
+        elif pre.get("q") == search_q:
+            hits = pre["hits"]   # 관문에서 이미 검색한 결과를 재사용
+        else:
+            hits = retriever.search(search_q)
         latency_log.mark(T, "t_search")
         if need_search and not gate.passes(hits):
             T["path"] = "gate_block"
