@@ -13,14 +13,14 @@
 ## 파일
 - `cases.json` 시험 세트 40개 (꼬리질문 15, 형태 변경 5, 독립 질문 20, dev/test 반반). 꼬리질문의 `expected_question`은 사람이 쓴 것이므로 확인이 필요하다.
 - `run_eval.py` 오프라인 평가(과금 없음): τ별 재현율·생략률·검색 적중, dev에서 τ를 고르고 test로 확인
-- `bench_ttfb.py` 서버에 직접 보내 "요청 → 첫 글자" 끔/켬 비교 (Claude 호출, 비용 약 $0.2 안팎)
+- `bench_ttfb.py` 서버에 직접 보내 "요청 → 첫 글자"를 설정별(off, τ=0.75/0.70/0.65 …)로 비교 (Claude 호출, 비용 약 $0.3~0.6). 서버는 요청 본문의 `rewrite_gate`·`rewrite_gate_tau`로 요청마다 설정을 바꾸고, 응답 헤더 `X-Rewrite-Skip`으로 생략 여부를 알려준다
 - `test_gate.py` 관문 규칙 단위 시험 (외부 의존 없음)
 
 ## 실행
 ```
 python3 eval/rewrite_gate/test_gate.py                                  # 규칙 시험
 server/.venv/bin/python eval/rewrite_gate/run_eval.py                   # τ 곡선 (벡터 DB 필요)
-python eval/rewrite_gate/bench_ttfb.py --url http://127.0.0.1:8100/v1/chat/completions   # 서버 전후 시간
+python eval/rewrite_gate/bench_ttfb.py --url http://127.0.0.1:8100/v1/chat/completions --arms off,0.75,0.70,0.65   # 서버 전후 시간
 ```
 
 ## 읽는 법

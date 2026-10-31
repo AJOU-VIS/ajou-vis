@@ -54,6 +54,7 @@ class ChatRequest(BaseModel):
     temperature: float | None = None  # 무시 (상위 LLM이 미지원)
     stream: bool = False
     rewrite_gate: bool | None = None  # 실험: 재작성 우회 관문을 요청 단위로 켜고 끔 (없으면 환경변수 REWRITE_GATE)
+    rewrite_gate_tau: float | None = None  # 실험: 이 요청에서만 기준 점수(τ)를 바꿔 본다 (없으면 환경변수 REWRITE_GATE_TAU)
 
 
 def _split_request(messages: list[Message]) -> tuple[str, str]:
@@ -167,7 +168,7 @@ def chat_completions(req: ChatRequest):
                 pre["q"] = utterance
                 pre["hits"] = retriever.search(utterance)
                 return max((h.score for h in pre["hits"]), default=0.0)
-            do_rewrite, why = rewrite_gate.decide(utterance, _peek)
+            do_rewrite, why = rewrite_gate.decide(utterance, _peek, req.rewrite_gate_tau)
             T["rw_skip" if not do_rewrite else "rw_why"] = why
         if do_rewrite:
             question, need_search = rewriter.rewrite(history, utterance, llm.chat)
@@ -213,8 +214,10 @@ def _llm_respond(system: str, user_msg: str, max_tokens: int, req: ChatRequest, 
         raw = latency_log.mark_first(
             llm.chat_stream(system=system, user=user_msg, max_tokens=max_tokens), T, "t_first_token")
         pieces = latency_log.mark_first(sentence_limit.limit_stream(raw), T, "t_first_piece", log_it=True)
+        # 응답 헤더로 이번 요청이 재작성을 건너뛰었는지 알린다 (시험 스크립트가 읽는다)
         return StreamingResponse(_stream_pieces(pieces, req.model),
-                                 media_type="text/event-stream")
+                                 media_type="text/event-stream",
+                                 headers={"X-Rewrite-Skip": "1" if (T and T.get("rw_skip")) else "0"})
 
     answer = sentence_limit.limit_text(llm.chat(system=system, user=user_msg, max_tokens=max_tokens))
     return _openai_response(answer, req.model)
