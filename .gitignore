@@ -14,6 +14,8 @@ assets/character/
 *.mp3
 *.m4a
 *.flac
+# 예외: 치토 목소리 기준 음성 — 서버 설정 파일 (모델로 만든 목소리, 10초)
+!server/voice/chito_ref.wav
 recordings/
 data/raw/
 
@@ -27,6 +29,7 @@ models/
 
 # --- eval 실행 결과 (재생성 가능 — 공유할 결과는 docs/나 Drive로) ---
 eval/smoke/results/
+eval/bank/results/
 
 # --- python ---
 __pycache__/

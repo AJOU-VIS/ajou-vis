@@ -161,10 +161,10 @@ def path_of(trace: Trace) -> str:
 LLM_PATHS = {"llm", "rewrite", "no_search", "smalltalk"}  # 답변을 LLM이 생성한 경로
 SEARCH_PATHS = {"llm", "rewrite"}  # 검색결과를 근거로 답한 경로
 
-# 음성 길이 기준 — 약 20초 분량(한국어 초당 7~8자, 영어 분당 150단어 가정). 넘으면 경고만.
-MAX_KO_CHARS = 150
-MAX_EN_WORDS = 50
-# 시스템 프롬프트 v1.3의 문장 수 규칙(2~3문장). 서버 상한으로 잘리기 전 LLM 원답에 적용한다.
+# 음성 길이 기준 — v1.4b 목표는 약 12초(한국어 80자 안팎, 영어 30단어 안팎). 여유를 두고 넘으면 경고만.
+MAX_KO_CHARS = 100
+MAX_EN_WORDS = 40
+# 시스템 프롬프트 v1.4b의 문장 수 규칙(두 문장, 조건이 갈릴 때만 세 문장). 서버 상한으로 잘리기 전 LLM 원답에 적용한다.
 MAX_PROMPT_SENTENCES = 3
 
 # 부서명: '…팀/처/센터/본부' + 조사. 검색결과에 없는 이름이면 지어낸 것으로 본다.
@@ -183,6 +183,11 @@ def sentence_count(text: str) -> int:
 def raw_answer(calls) -> str:
     """서버 후처리(문장 수 상한) 전의 LLM 답변 — 마지막 answer 호출의 원문."""
     return next((c.get("text", "") for c in reversed(calls) if c["stage"] == "answer"), "")
+
+
+def context_text(hits) -> str:
+    """점검에 쓰는 이번 턴 검색결과 — 문서명·조항·본문 (부서명·조항 번호가 검색결과에 있었는지 확인용)."""
+    return "\n".join(f"{h.source_name} {h.article} {h.text}" for h in hits)
 
 
 def hangul_ratio(text: str) -> float:
@@ -234,12 +239,14 @@ def check(case: dict, answer: str, path: str, calls=(), context: str = "") -> tu
         if re.search(r"\d{4}\.\s?\d{1,2}\.\s?\d{1,2}\.", answer):
             issues.append("개정 날짜 표기를 읽음")
         if re.search(r"[()（）]", answer):
-            warns.append("괄호 사용 — 소리 내 읽기 어색한지 확인")
+            issues.append("괄호 사용 (TTS가 괄호 안까지 그대로 읽음)")
+        if re.search(r"[~∼〜]", answer):
+            issues.append("물결표 사용 — 범위는 말로 (16학번부터 24학번까지)")
         raw = raw_answer(calls) or answer
         n = sentence_count(raw)
         if n > MAX_PROMPT_SENTENCES:
             cut = " — 서버 문장 상한이 줄여서 내보냄" if sentence_count(answer) < n else ""
-            issues.append(f"LLM 원답 {n}문장 (프롬프트 기준 2~3){cut}")
+            issues.append(f"LLM 원답 {n}문장 (프롬프트 기준 두 문장, 조건이 갈릴 때만 세 문장){cut}")
         if not case.get("greeting_ok") and re.match(r"\s*(안녕|hi\b|hello|hey)", answer, re.I):
             issues.append("묻지 않았는데 인사")
         want = case.get("answer_lang", case["lang"])
@@ -248,6 +255,8 @@ def check(case: dict, answer: str, path: str, calls=(), context: str = "") -> tu
             issues.append(f"영어로 답해야 하는데 한글 비율 {ratio:.0%}")
         if want == "ko" and ratio < 0.5:
             issues.append(f"한국어로 답해야 하는데 한글 비율 {ratio:.0%}")
+        if want == "ko" and re.search(r"니다(?=[.!?,\s]|$)", answer):
+            issues.append("합니다체 섞임 (해요체 규칙)")
         if want == "ko" and len(answer) > MAX_KO_CHARS:
             warns.append(f"음성 기준 긺 — {len(answer)}자 (기준 {MAX_KO_CHARS}자)")
         if want == "en" and len(answer.split()) > MAX_EN_WORDS:
@@ -256,8 +265,14 @@ def check(case: dict, answer: str, path: str, calls=(), context: str = "") -> tu
             depts = {m.group(0) for m in DEPT_NAME.finditer(answer)} - NOT_DEPTS - DEFAULT_DEPTS
             for dept in sorted(d for d in depts if d not in context):
                 issues.append(f"검색결과에 없는 부서명 '{dept}'")
+            # '학칙 제50조에 따르면'처럼 검색결과에 없는 조항을 출처로 댄 경우 (10/27 음성 테스트)
+            cited = {int(n) for n in re.findall(r"제\s?(\d+)\s?조", answer)}
+            cited |= {int(n) for n in re.findall(r"\bArticle\s+(\d+)", answer, re.I)}
+            compact = re.sub(r"\s+", "", context)
+            for n in sorted(c for c in cited if f"제{c}조" not in compact):
+                issues.append(f"검색결과에 없는 조항 '제{n}조'를 출처로 댐")
         if case.get("cites_source") and not re.search(
-            r"학칙|규칙|규정|according to|regulation|rules", answer, re.I
+            r"학칙|규칙|규정|안내|에 따르면|according to|regulation|rules|guide", answer, re.I
         ):
             issues.append("근거 출처 표기 없음")
     return issues, warns
@@ -289,7 +304,7 @@ def run_case(case, client, trace, app, smalltalk, gate, dry_run: bool) -> dict:
         path = path_of(trace)
 
     seconds = round(time.time() - t, 2)
-    context = "\n".join(h.text for h in trace.hits)
+    context = context_text(trace.hits)
     issues, warns = ([], []) if dry_run else check(case, answer, path, trace.calls, context)
     if dry_run:
         if case.get("expect_gate") == "block" and path == "llm":
@@ -335,7 +350,7 @@ def recheck(json_path: Path, cases: list[dict], retriever) -> tuple[dict, Path]:
         context = ""
         if r["path"] in SEARCH_PATHS:
             query = r.get("search_query") or r.get("rewritten") or r["question"]
-            context = "\n".join(h.text for h in retriever.search(query))
+            context = context_text(retriever.search(query))
         issues, warns = check(case, r["answer"], r["path"], r["llm_calls"], context)
         if r.get("error"):
             issues.insert(0, f"오류: {r['error']}")
