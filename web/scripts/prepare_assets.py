@@ -2,8 +2,14 @@
 
 실행:  python web/scripts/prepare_assets.py "<치토 PNG 폴더>"
 결과:  web/static/assets/chito/chito_*.png (.gitignore)
+
+원본은 파일 이름 앞 번호(예: "29.")로 찾는다. Drive에 올리면서 이름 뒤쪽이 바뀌거나
+(예: "29.인사 (1).png") 폴더가 한 겹 더 생겨도, 한글 자모가 나뉘어 저장돼도(NFD) 찾는다.
+없는 표정은 건너뛰고 끝에 알려 준다 — 화면은 그 표정만 이미지 없이 뜬다.
 """
+import re
 import sys
+import unicodedata
 from pathlib import Path
 
 from PIL import Image
@@ -21,11 +27,34 @@ FACES = {
     "chito_error": "11.놀람.png",
 }
 
+
+def find(files, filename):
+    """이름이 같은 파일, 없으면 앞 번호가 같은 PNG 하나."""
+    want = unicodedata.normalize("NFC", filename)
+    for f in files:
+        if unicodedata.normalize("NFC", f.name) == want:
+            return f
+    number = filename.split(".", 1)[0]
+    same_number = [f for f in files if re.match(rf"{number}\.", unicodedata.normalize("NFC", f.name))]
+    return same_number[0] if len(same_number) == 1 else None
+
+
 src = Path(sys.argv[1])
+if not src.is_dir():
+    sys.exit(f"폴더가 없습니다: {src}")
+files = sorted(p for p in src.rglob("*") if p.suffix.lower() == ".png")
+if not files:
+    sys.exit(f"PNG가 없습니다: {src}")
+
 dst = Path(__file__).resolve().parents[1] / "static" / "assets" / "chito"
 dst.mkdir(parents=True, exist_ok=True)
+missing = []
 for name, filename in FACES.items():
-    im = Image.open(src / filename).convert("RGBA")
+    path = find(files, filename)
+    if path is None:
+        missing.append(filename)
+        continue
+    im = Image.open(path).convert("RGBA")
     im = im.crop(im.getbbox())
     w, h = im.size
     side = max(w, h)
@@ -34,4 +63,8 @@ for name, filename in FACES.items():
     canvas.alpha_composite(im, ((side + 2 * pad - w) // 2, (side + 2 * pad - h) // 2))
     canvas.thumbnail((480, 480), Image.LANCZOS)
     canvas.save(dst / f"{name}.png", optimize=True)
-    print(name, "←", filename)
+    print(name, "←", path.relative_to(src))
+
+if missing:
+    print(f"\n못 찾은 원본 {len(missing)}개 (이 표정은 이미지 없이 뜬다): {', '.join(missing)}")
+    print("폴더에 있는 PNG:", ", ".join(f.name for f in files[:40]))
