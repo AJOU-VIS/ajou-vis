@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>치토 · AJOU-VIS</title>
+  <link rel="icon" href="assets/chito/chito_idle.png">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="side" id="side">
+      <div class="brand"><img src="assets/chito/chito_idle.png" alt=""><div><b>AJOU-VIS</b><small data-i18n="brandSub">캠퍼스 안내 치토</small></div></div>
+      <button class="newchat" id="newchat">＋ <span data-i18n="newChat">새 대화</span></button>
+      <h4 data-i18n="tryAsking">이렇게 물어보세요</h4>
+      <div id="examples"></div>
+      <div class="spacer"></div>
+      <div class="seg" id="lang-seg">
+        <button data-lang="auto" class="on" data-i18n="langAuto">자동</button><button data-lang="ko">한국어</button><button data-lang="en">English</button>
+      </div>
+      <div class="conn"><span class="dot" id="conn-dot"></span><span id="conn-text" data-i18n="connIdle">연결 전</span></div>
+      <div class="foot" data-i18n="foot">답변은 학칙·학교 안내 자료를 근거로 해요. 개인 성적·신청은 처리하지 않아요.</div>
+    </aside>
+
+    <main class="chat">
+      <div class="topbar">
+        <button class="menu-btn" id="menu-btn" aria-label="메뉴">☰</button>
+        <span class="title" id="title" data-i18n="newChat">새 대화</span>
+        <button class="tts" id="tts-btn" aria-pressed="true"><span class="label" data-i18n="ttsLabel">음성으로 답 듣기</span><span class="toggle on" id="tts-toggle"></span></button>
+      </div>
+      <div class="m-stage"><img class="js-face" src="assets/chito/chito_hello.png" alt=""><div><div class="name" data-i18n="name">치토</div><div class="pill js-pill"></div></div></div>
+      <div class="thread" id="thread">
+        <div class="col" id="col"></div>
+      </div>
+      <div class="composer-wrap">
+        <button class="mic sm mic-float js-mic" aria-label="말하기"></button>
+        <form class="composer" id="composer" autocomplete="off">
+          <input id="input" data-i18n-placeholder="placeholder" placeholder="치토에게 물어보세요" aria-label="질문 입력">
+          <button type="button" class="icon-btn js-mic-small" aria-label="말하기"></button>
+          <button type="submit" class="send" id="send" disabled aria-label="보내기">↑</button>
+        </form>
+        <div class="hint" id="hint" data-i18n="hintIdle">말하려면 오른쪽 마이크를 누르거나 스페이스바를 누르세요</div>
+      </div>
+    </main>
+
+    <aside class="stage" id="stage">
+      <img class="face js-face" src="assets/chito/chito_hello.png" alt="치토">
+      <div class="name" data-i18n="name">치토</div>
+      <div class="pill js-pill"></div>
+      <div class="wave js-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="spacer"></div>
+      <div class="mic-area">
+        <button class="mic js-mic" aria-label="말하기"></button>
+        <div class="mic-cap js-mic-cap"></div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- 모바일 음성 모드 (듣는 중에만) -->
+  <div class="voice" id="voice">
+    <img class="face js-face" src="assets/chito/chito_listen.png" alt="">
+    <div class="pill js-pill"></div>
+    <div class="live-text" id="voice-text"></div>
+    <div class="wave js-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <button class="mic js-mic" aria-label="말하기"></button>
+  </div>
+
+  <dialog id="pass-dialog">
+    <form method="dialog" id="pass-form">
+      <h3 data-i18n="passTitle">접속 비밀번호</h3>
+      <p data-i18n="passBody">팀에서 받은 비밀번호를 입력해 주세요.</p>
+      <input id="pass-input" type="password" autocomplete="current-password">
+      <div class="row"><button class="send" type="submit" data-i18n="passOk">확인</button></div>
+    </form>
+  </dialog>
+  <div class="toast" id="toast"></div>
+
+  <script src="vendor/openai-realtime-agents.umd.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

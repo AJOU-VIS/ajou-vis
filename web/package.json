@@ -1,0 +1,9 @@
+{
+  "name": "ajou-vis-web",
+  "private": true,
+  "description": "치토 웹 대화 화면 — 브라우저용 OpenAI Agents 실시간 SDK 번들만 쓴다 (speech-to-speech demo와 같은 고정 버전)",
+  "dependencies": {
+    "@openai/agents": "0.14.3",
+    "zod": "4.4.3"
+  }
+}
