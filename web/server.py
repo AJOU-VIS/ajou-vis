@@ -28,6 +28,7 @@ from pathlib import Path
 import httpx
 import websockets
 from fastapi import FastAPI, HTTPException, Request, WebSocket
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -46,6 +47,8 @@ PORTAL_URL = os.environ.get("PORTAL_URL", "").strip()
 COOKIE = "chito_pass"
 
 app = FastAPI(title="AJOU-VIS 치토 웹")
+# 터널을 거치면 전송량이 곧 로딩 시간이다 — SDK 번들 4.8MB가 압축하면 약 1MB (웹소켓에는 적용되지 않음)
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 
 def _token() -> str:
@@ -61,7 +64,8 @@ def sdk_bundle():
     path = next((p for p in SDK_BUNDLES if p.is_file()), None)
     if path is None:
         raise HTTPException(status_code=503, detail="web/ 에서 npm ci 를 먼저 실행하세요")
-    return FileResponse(path, media_type="text/javascript")
+    # 버전을 고정한 파일이라 브라우저에 일주일 동안 저장해 두고 다시 받지 않는다
+    return FileResponse(path, media_type="text/javascript", headers={"Cache-Control": "public, max-age=604800, immutable"})
 
 
 @app.get("/api/config")

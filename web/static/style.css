@@ -19,7 +19,7 @@
   --care-bg:  #eef7f4;
   --warn:     #9a5b00;
   --warn-bg:  #fff4e6;
-  font-family: "Pretendard", "Malgun Gothic", system-ui, sans-serif;
+  font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", system-ui, sans-serif;
   color: var(--ink);
 }
 * { box-sizing: border-box; }
@@ -74,14 +74,27 @@ a { color: var(--blue-700); text-decoration: none; }
 .bubble-user.live { color: var(--ink-2); font-style: italic; background: #f3f5f8; border: 1px dashed var(--blue-300); }
 .bubble-user.live::after { content: "▍"; color: var(--blue-500); margin-left: 2px; }
 .via { font-size: 11.5px; color: var(--ink-3); display: flex; align-items: center; gap: 4px; }
+.via svg { width: 13px; height: 13px; flex: none; }
 
-.msg-ai { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 12px; align-items: start; }
-.avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--blue-50); border: 1px solid var(--line); overflow: hidden; display: grid; place-items: center; }
-.avatar img { width: 42px; height: 42px; margin-top: 4px; }
+.msg-ai { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; align-items: start; }
+/* 프로필은 배경 없이 치토 전체 모습을 작게 (원본은 prepare_assets.py가 가운데 정렬한 정사각형) */
+.avatar { width: 40px; height: 40px; display: grid; place-items: center; }
+.avatar img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .ai-name { font-size: 13px; font-weight: 700; color: var(--blue-700); margin-bottom: 4px; display: flex; gap: 8px; align-items: center; }
 .tag { font-size: 11px; font-weight: 600; color: var(--ink-3); background: #f1f3f6; border-radius: 6px; padding: 2px 6px; }
 .ai-text { font-size: 15.5px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
 .ai-text.typing::after { content: "▍"; color: var(--blue-500); margin-left: 2px; }
+/* 새로 보이는 글자는 흐릿하게 떠올랐다가 또렷해진다 */
+.ai-text .ch { animation: ch-in .3s ease-out both; }
+@keyframes ch-in { from { opacity: .15; filter: blur(1px); } to { opacity: 1; filter: none; } }
+@media (prefers-reduced-motion: reduce) { .ai-text .ch { animation: none; } }
+/* 생각하는 중 — 질문이 들어갔다는 표시 */
+.dots { display: flex; gap: 5px; align-items: center; height: 26px; }
+.dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--blue-500); opacity: .3; animation: dot 1.2s infinite ease-in-out; }
+.dots i:nth-child(2) { animation-delay: .2s; }
+.dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes dot { 0%, 80%, 100% { opacity: .3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .dots i { animation: none; opacity: .6; } }
 .ai-actions { display: flex; gap: 14px; margin-top: 8px; font-size: 12.5px; color: var(--ink-3); }
 .ai-actions button:hover { color: var(--ink); }
 
@@ -89,6 +102,7 @@ a { color: var(--blue-700); text-decoration: none; }
 .src { border: 1px solid var(--line); border-radius: 12px; background: #fff; overflow: hidden; }
 .src-head { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; width: 100%; text-align: left; }
 .src-ico { width: 30px; height: 30px; border-radius: 8px; background: var(--blue-50); display: grid; place-items: center; color: var(--blue-700); }
+.src-ico svg, .contact .ico svg { width: 16px; height: 16px; display: block; }
 .src-doc { font-size: 13.5px; font-weight: 700; }
 .src-art { font-size: 12.5px; color: var(--ink-2); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .src-tools { display: flex; gap: 12px; align-items: center; font-size: 12.5px; font-weight: 600; color: var(--blue-700); white-space: nowrap; }

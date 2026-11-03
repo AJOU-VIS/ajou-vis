@@ -5,8 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>치토 · AJOU-VIS</title>
   <link rel="icon" href="assets/chito/chito_idle.png">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <!-- 가변 글꼴 + 쓰는 글자 묶음만 받는다 (굵기별 전체 글꼴은 하나에 약 770KB × 5) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="style.css">
+  <!-- 모듈을 하나씩 따라가며 받지 않고 한 번에 받는다 (터널을 거치면 왕복마다 느려진다) -->
+  <link rel="modulepreload" href="app.js">
+  <link rel="modulepreload" href="chito-client.js">
+  <link rel="modulepreload" href="mock.js">
+  <link rel="modulepreload" href="realtime/s2s-realtime-client.js">
+  <link rel="modulepreload" href="realtime/ws/codec.js">
+  <link rel="modulepreload" href="realtime/ws/orb-visualizer.js">
+  <link rel="modulepreload" href="realtime/ws/user-audio-recorder.js">
 </head>
 <body>
   <div class="app">
@@ -76,7 +85,7 @@
   </dialog>
   <div class="toast" id="toast"></div>
 
-  <script src="vendor/openai-realtime-agents.umd.js"></script>
+  <!-- 음성 연결 SDK(vendor/openai-realtime-agents.umd.js, 약 4.8MB)는 화면이 뜬 뒤 app.js가 따로 받는다 -->
   <script type="module" src="app.js"></script>
 </body>
 </html>
