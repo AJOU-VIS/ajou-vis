@@ -26,6 +26,7 @@ class SearchHit:
     article: str      # 조항 또는 URL (예: "제31조")
     text: str         # 본문 청크
     score: float      # 유사도 점수 (게이트 임계값 판단에 사용)
+    url: str = ""     # 원문 주소 (벡터 DB 메타데이터) — LLM에는 보내지 않고 웹 화면 출처 카드에만 쓴다
 
 
 class Retriever(Protocol):
@@ -149,6 +150,7 @@ class ChromaRetriever:
                          if meta["article_no"] else meta["article_title"]),
                 text=doc,
                 score=score,
+                url=meta.get("url", ""),
             )
             for doc, meta, score, _is_keyword in ranked
         ]

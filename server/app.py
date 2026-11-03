@@ -30,6 +30,7 @@ import rewriter
 import sentence_limit
 import smalltalk
 import realtime
+import turns
 from rag import ChromaRetriever, StubRetriever, format_context
 
 app = FastAPI(title="AJOU-VIS RAG Server")
@@ -108,8 +109,11 @@ def _stream_pieces(pieces, model: str):
     yield "data: [DONE]\n\n"
 
 
-def _respond(text: str, req: ChatRequest):
-    """정형 응답(보류·오류 안내) — stream 요청이면 단일 청크 SSE로."""
+def _respond(text: str, req: ChatRequest, turn: dict | None = None):
+    """정형 응답(보류·오류 안내) — stream 요청이면 단일 청크 SSE로.
+    turn이 있으면 웹 화면용 턴 기록에 남긴다 (server/turns.py)."""
+    if turn:
+        turns.record(answer=text, **turn)
     if req.stream:
         return StreamingResponse(_stream_pieces([text], req.model),
                                  media_type="text/event-stream")
@@ -130,6 +134,12 @@ def warmup():
     return {"status": "ok", "loaded_hits": len(hits)}
 
 
+@app.get("/v1/turns/latest")
+def turns_latest(after: int = 0):
+    """웹 화면용 마지막 턴 정보(출처·처리 경로·표정 분류·연락처). 읽기 전용, LLM 호출 없음."""
+    return {"turn": turns.latest(after)}
+
+
 @app.post("/v1/chat/completions")
 def chat_completions(req: ChatRequest):
     history, utterance = _split_request(req.messages)
@@ -137,10 +147,11 @@ def chat_completions(req: ChatRequest):
         return _respond("질문을 인식하지 못했어요. 다시 말씀해 주세요!", req)
 
     lang = prompts_loader.detect_lang(utterance)
+    turn = {"lang": lang, "question": utterance}
 
     # 위기 발화는 검색·게이트·LLM보다 먼저, 정해진 상담 안내로 답한다 (server/crisis.py)
     if crisis.is_crisis(utterance):
-        return _respond(crisis.message(lang), req)
+        return _respond(crisis.message(lang), req, {**turn, "path": "crisis"})
 
     system = prompts_loader.system_prompt(lang)
     # 출력 상한에는 모델의 생각 토큰도 들어간다. 300이면 보이는 답이 94자인데도 상한에 닿아
@@ -152,7 +163,7 @@ def chat_completions(req: ChatRequest):
         user_msg = prompts_loader.user_turn(
             history=history, lang=lang, question=utterance, context="",
         ) + "\n\n" + smalltalk.NOTE.get(lang, smalltalk.NOTE["en"])
-        return _llm_respond(system, user_msg, max_tokens, req)
+        return _llm_respond(system, user_msg, max_tokens, req, {**turn, "path": "smalltalk"})
 
     # ④ 좌석 질문은 벡터 검색 대신 도서관 API를 직접 호출한다 (분 단위로 바뀌는 값).
     # 원문에서 먼저 보고(LLM 호출 없이), 아니면 팔로업 재작성 결과에서도 본다
@@ -165,16 +176,17 @@ def chat_completions(req: ChatRequest):
         question, need_search = rewriter.rewrite(history, utterance, llm.chat)
         is_seat = need_search and realtime.is_seat_question(question)
 
+    hits = []
     if is_seat:
         context = realtime.format_seat_context()
         if not context:
-            return _respond(gate.deferral_message(lang), req)
+            return _respond(gate.deferral_message(lang), req, {**turn, "path": "gate_block"})
     else:
         # ② 검색 → ① 신뢰도 게이트 (영어 질문은 한국어 검색어로 옮겨 검색한다)
         hits = (retriever.search(rewriter.search_query(question, lang, llm.chat))
                 if need_search else [])
         if need_search and not gate.passes(hits):
-            return _respond(gate.deferral_message(lang), req)
+            return _respond(gate.deferral_message(lang), req, {**turn, "path": "gate_block", "hits": hits})
         context = format_context(hits)
 
     # ③ 사용자 턴 조립 → 고정 시스템 프롬프트로 상위 LLM 호출
@@ -182,15 +194,31 @@ def chat_completions(req: ChatRequest):
         history=history, lang=lang, question=question,
         context=context,
     )
-    
-    return _llm_respond(system, user_msg, max_tokens, req)
+    path = "seat" if is_seat else ("llm" if need_search else "no_search")
+    return _llm_respond(system, user_msg, max_tokens, req, {**turn, "path": path, "hits": hits})
 
-def _llm_respond(system: str, user_msg: str, max_tokens: int, req: ChatRequest):
+
+def _recording(pieces, turn: dict):
+    """스트리밍 조각을 그대로 흘려보내고, 끝나면 이어 붙인 답을 턴 기록에 남긴다."""
+    parts = []
+    try:
+        for piece in pieces:
+            parts.append(piece)
+            yield piece
+    finally:
+        turns.record(answer="".join(parts).strip(), **turn)
+
+
+def _llm_respond(system: str, user_msg: str, max_tokens: int, req: ChatRequest, turn: dict | None = None):
     if req.stream:
         pieces = sentence_limit.limit_stream(
             llm.chat_stream(system=system, user=user_msg, max_tokens=max_tokens))
+        if turn:
+            pieces = _recording(pieces, turn)
         return StreamingResponse(_stream_pieces(pieces, req.model),
                                  media_type="text/event-stream")
 
     answer = sentence_limit.limit_text(llm.chat(system=system, user=user_msg, max_tokens=max_tokens))
+    if turn:
+        turns.record(answer=answer, **turn)
     return _openai_response(answer, req.model)

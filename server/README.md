@@ -52,6 +52,7 @@ speech-to-speech local ... \
 | `crisis.py` | 위기 발화를 검색·게이트보다 먼저 잡아 고정 상담 안내 (학생상담소·109·119) | |
 | `smalltalk.py` | 인사·잡담·감정 표현·빈말은 검색 없이 짧게 응대 | |
 | `sentence_limit.py` | 답변 문장 수 상한 (영어 약어 마침표는 문장 끝으로 안 셈) | |
+| `turns.py` | 웹 화면용 턴 기록 — 출처(문서·조항·원문 url)·처리 경로·표정 분류·연락처, `GET /v1/turns/latest` (읽기 전용) | |
 | `llm.py` | 상위 LLM(OpenAI 호환 API) 클라이언트 | |
 
 ## RAG 검색 (rag.py)
