@@ -22,6 +22,7 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+import crisis
 import gate
 import llm
 import prompts_loader
@@ -137,8 +138,14 @@ def chat_completions(req: ChatRequest):
 
     lang = prompts_loader.detect_lang(utterance)
 
+    # 위기 발화는 검색·게이트·LLM보다 먼저, 정해진 상담 안내로 답한다 (server/crisis.py)
+    if crisis.is_crisis(utterance):
+        return _respond(crisis.message(lang), req)
+
     system = prompts_loader.system_prompt(lang)
-    max_tokens = req.max_tokens or 300
+    # 출력 상한에는 모델의 생각 토큰도 들어간다. 300이면 보이는 답이 94자인데도 상한에 닿아
+    # 문장 중간에서 끊긴 적이 있다 (11/3 100문항 69-ko). 답 길이는 프롬프트와 sentence_limit가 정한다.
+    max_tokens = req.max_tokens or 1024
 
     # 인사·잡담은 검색·게이트를 건너뛰고 치토가 바로 응대한다
     if smalltalk.is_smalltalk(utterance):
