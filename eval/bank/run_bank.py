@@ -121,10 +121,11 @@ def run_no_rag(llm, q: dict, lang: str) -> dict:
 
 
 def judge_context(hits, seat: bool) -> str:
-    """채점자에게 보여 줄 이번 턴 근거 — 검색결과 상위 3개 본문 (실시간 좌석 질문은 그렇다고 알림)."""
+    """채점자에게 보여 줄 이번 턴 근거 — LLM이 받은 검색결과 전부의 본문 (실시간 좌석 질문은 그렇다고 알림).
+    10/28에는 상위 3개만 보여 줘서, 4번째 조각에 있던 연락처(51-en)를 지어낸 것으로 잘못 판정했다."""
     if seat:
         return "(도서관 실시간 좌석 질문 — 검색결과 대신 도서관 실시간 좌석 데이터로 답함)"
-    return "\n".join(f"- [{h.source_name} | {h.article}] {h.text.replace(chr(10), ' ')[:500]}" for h in hits[:3]) \
+    return "\n".join(f"- [{h.source_name} | {h.article}] {h.text.replace(chr(10), ' ')[:500]}" for h in hits) \
         or "(검색 안 함 또는 게이트 차단)"
 
 
@@ -136,9 +137,10 @@ def judge(client, model: str, effort: str | None, q: dict, rec: dict, context: s
         f"근거 문서: {q['doc']} · {q['ref']}\n"
         f"정답 판정 기준: {q['criteria']}\n\n"
         f"[치토의 답변]\n{rec['answer'] or '(답변 없음: ' + str(rec.get('error')) + ')'}\n\n"
-        f"[참고: 이번 턴 근거 — 검색결과 상위 3개 본문]\n{context}"
+        f"[참고: 이번 턴 근거 — 치토가 받은 검색결과 본문]\n{context}"
     )
-    kwargs = {"model": model, "max_tokens": 300, "system": JUDGE_SYSTEM,
+    # 300이면 생각 토큰까지 포함해 JSON이 중간에 잘린 적이 있다 (11/3 39-ko). 판정 JSON은 짧아서 비용 차이는 작다.
+    kwargs = {"model": model, "max_tokens": 1000, "system": JUDGE_SYSTEM,
               "messages": [{"role": "user", "content": user}]}
     if effort and not model.startswith(("claude-haiku-4-5", "claude-sonnet-4-5")):
         kwargs["output_config"] = {"effort": effort}

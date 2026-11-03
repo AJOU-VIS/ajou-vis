@@ -57,6 +57,7 @@ class Trace:
         self.reset()
 
     def reset(self):
+        self.crisis = None
         self.smalltalk = None
         self.rewritten = None
         self.need_search = None
@@ -69,6 +70,16 @@ class Trace:
 
 def install_tracing(app, gate, rewriter, smalltalk, llm, trace: Trace, with_llm: bool):
     """서버 코드는 그대로 두고, 모듈 함수를 감싸서 단계별 결과를 trace에 남긴다."""
+    import crisis  # server/ (위기 발화 감지, 11/3 추가)
+
+    orig_crisis = crisis.is_crisis
+
+    def is_crisis(utterance):
+        trace.crisis = orig_crisis(utterance)
+        return trace.crisis
+
+    crisis.is_crisis = is_crisis
+
     orig_small = smalltalk.is_smalltalk
 
     def is_smalltalk(utterance):
@@ -145,6 +156,8 @@ def install_tracing(app, gate, rewriter, smalltalk, llm, trace: Trace, with_llm:
 
 
 def path_of(trace: Trace) -> str:
+    if trace.crisis:
+        return "crisis"
     if trace.smalltalk:
         return "smalltalk"
     if trace.need_search is False:
@@ -164,20 +177,28 @@ SEARCH_PATHS = {"llm", "rewrite"}  # 검색결과를 근거로 답한 경로
 # 음성 길이 기준 — v1.4b 목표는 약 12초(한국어 80자 안팎, 영어 30단어 안팎). 여유를 두고 넘으면 경고만.
 MAX_KO_CHARS = 100
 MAX_EN_WORDS = 40
-# 시스템 프롬프트 v1.4b의 문장 수 규칙(두 문장, 조건이 갈릴 때만 세 문장). 서버 상한으로 잘리기 전 LLM 원답에 적용한다.
-MAX_PROMPT_SENTENCES = 3
+# 시스템 프롬프트 v2의 문장 수 규칙(최대 두 문장 — v1.4b는 조건이 갈릴 때 세 문장까지). 서버 상한으로 잘리기 전 LLM 원답에 적용한다.
+MAX_PROMPT_SENTENCES = 2
 
 # 부서명: '…팀/처/센터/본부' + 조사. 검색결과에 없는 이름이면 지어낸 것으로 본다.
 DEPT_NAME = re.compile(
     r"[가-힣]+?(?:팀|처|센터|본부)"
     r"(?=$|[\s,.!?]|에서|에|의|이나|나|과|와|를|을|은|는|으로|로|이|가|도)"
 )
-NOT_DEPTS = {"근처", "출처", "대처", "거처", "각처"}
-DEFAULT_DEPTS = {"학사지원팀"}  # 근거가 없을 때 안내하도록 시스템 프롬프트가 지정한 곳
+NOT_DEPTS = {"근처", "출처", "대처", "거처", "각처", "연락처"}
+# 근거가 없을 때 안내하도록 시스템 프롬프트(v2 '기본 안내처')가 지정한 곳
+DEFAULT_DEPTS = {"교무팀", "교학팀", "재무회계팀", "학생지원팀", "유학생입학팀", "국제협력처"}
+# 전화번호·이메일: 이번 턴 검색결과 5개 어디에도 없으면 지어낸 것으로 본다 (이메일 뒤 조사는 빼고 잡음)
+CONTACT = re.compile(r"\d{2,4}-\d{3,4}-\d{4}|[A-Za-z0-9._+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+")
+
+
+# 문장 끝이 아닌 마침표 ("9 a.m. to 6 p.m."을 세 문장으로 세던 문제, 11/3 84-en)
+ABBREVIATION = re.compile(r"\b(?:a\.m|p\.m|e\.g|i\.e|etc|vs|No|Dr|St|Mr|Ms)\.", re.I)
 
 
 def sentence_count(text: str) -> int:
-    return len([s for s in re.split(r"(?<=[.!?。])\s+", text.strip()) if s.strip()])
+    text = ABBREVIATION.sub(lambda m: m.group(0).replace(".", ""), text.strip())
+    return len([s for s in re.split(r"(?<=[.!?。])\s+", text) if s.strip()])
 
 
 def raw_answer(calls) -> str:
@@ -243,10 +264,12 @@ def check(case: dict, answer: str, path: str, calls=(), context: str = "") -> tu
         if re.search(r"[~∼〜]", answer):
             issues.append("물결표 사용 — 범위는 말로 (16학번부터 24학번까지)")
         raw = raw_answer(calls) or answer
+        if case.get("greeting_ok"):  # 인사가 허용된 턴의 맨 앞 "Hi!"·"안녕하세요!"는 문장 수에서 뺀다 (11/3 E6)
+            raw = re.sub(r"^\s*(hi|hello|hey|안녕하세요|안녕)\s*[!.]\s*", "", raw, flags=re.I)
         n = sentence_count(raw)
         if n > MAX_PROMPT_SENTENCES:
             cut = " — 서버 문장 상한이 줄여서 내보냄" if sentence_count(answer) < n else ""
-            issues.append(f"LLM 원답 {n}문장 (프롬프트 기준 두 문장, 조건이 갈릴 때만 세 문장){cut}")
+            issues.append(f"LLM 원답 {n}문장 (프롬프트 기준 최대 두 문장){cut}")
         if not case.get("greeting_ok") and re.match(r"\s*(안녕|hi\b|hello|hey)", answer, re.I):
             issues.append("묻지 않았는데 인사")
         want = case.get("answer_lang", case["lang"])
@@ -257,6 +280,11 @@ def check(case: dict, answer: str, path: str, calls=(), context: str = "") -> tu
             issues.append(f"한국어로 답해야 하는데 한글 비율 {ratio:.0%}")
         if want == "ko" and re.search(r"니다(?=[.!?,\s]|$)", answer):
             issues.append("합니다체 섞임 (해요체 규칙)")
+        # 페르소나 v2.3 말투 (한·영 일관성 점검 11/3) — 맥락을 봐야 해서 경고만
+        if want == "ko" and re.search(r"(하시|보시|드시|주시|받으시|가시|오시)", answer):
+            warns.append("높임 '-시-' 섞임 (페르소나: 친근한 해요체로 통일)")
+        if "!" in answer and not case.get("greeting_ok"):
+            warns.append("느낌표 — 인사가 아니면 마침표로 (페르소나)")
         if want == "ko" and len(answer) > MAX_KO_CHARS:
             warns.append(f"음성 기준 긺 — {len(answer)}자 (기준 {MAX_KO_CHARS}자)")
         if want == "en" and len(answer.split()) > MAX_EN_WORDS:
@@ -265,6 +293,8 @@ def check(case: dict, answer: str, path: str, calls=(), context: str = "") -> tu
             depts = {m.group(0) for m in DEPT_NAME.finditer(answer)} - NOT_DEPTS - DEFAULT_DEPTS
             for dept in sorted(d for d in depts if d not in context):
                 issues.append(f"검색결과에 없는 부서명 '{dept}'")
+            for contact in sorted(set(CONTACT.findall(answer)) - set(CONTACT.findall(context))):
+                issues.append(f"검색결과에 없는 연락처 '{contact}'")
             # '학칙 제50조에 따르면'처럼 검색결과에 없는 조항을 출처로 댄 경우 (10/27 음성 테스트)
             cited = {int(n) for n in re.findall(r"제\s?(\d+)\s?조", answer)}
             cited |= {int(n) for n in re.findall(r"\bArticle\s+(\d+)", answer, re.I)}
@@ -287,12 +317,13 @@ def run_case(case, client, trace, app, smalltalk, gate, dry_run: bool) -> dict:
     answer, error = "", None
 
     if dry_run:
-        # LLM 없이 서버와 같은 순서로 잡담 판정 → 검색 → 게이트만 확인.
+        # LLM 없이 서버와 같은 순서로 위기 발화 → 잡담 판정 → 검색 → 게이트만 확인.
         # 꼬리질문 재작성은 LLM이 필요해 건너뛰고 원문으로 검색한다.
-        if not smalltalk.is_smalltalk(case["question"]):
+        import crisis
+        if not crisis.is_crisis(case["question"]) and not smalltalk.is_smalltalk(case["question"]):
             hits = app.retriever.search(case["question"])
             gate.passes(hits)
-        path = "smalltalk" if trace.smalltalk else ("gate_block" if trace.gate is False else "llm")
+        path = path_of(trace) if trace.crisis or trace.smalltalk else ("gate_block" if trace.gate is False else "llm")
     else:
         messages = history + [{"role": "user", "content": case["question"]}]
         try:
@@ -326,7 +357,7 @@ def run_case(case, client, trace, app, smalltalk, gate, dry_run: bool) -> dict:
         "top_score": round(max((h.score for h in trace.hits), default=0.0), 3),
         "hits": [
             {"source": h.source_name, "article": h.article, "score": round(h.score, 3)}
-            for h in trace.hits[:3]
+            for h in trace.hits  # LLM이 받은 검색결과 전부 (상위 3개만 남기면 4·5번째 근거를 놓침)
         ],
         "answer": answer, "chars": len(answer), "words": len(answer.split()),
         "raw_answer": raw_answer(trace.calls),
