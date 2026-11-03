@@ -48,7 +48,10 @@ speech-to-speech local ... \
 | `prompts_loader.py` | `../prompts/*.md` 로드, 자리표시자 채움 | ③, ④ |
 | `rewriter.py` | 팔로업 재작성, `[NO_SEARCH]` 판정 | ④ 멀티턴 |
 | `rag.py` | 검색 인터페이스 + 스텁 (ChromaDB 연결 지점) | ② 출력 형식 |
-| `gate.py` | 신뢰도 게이트 + 정형 보류 응답 | ① 이중 강제 |
+| `gate.py` | 신뢰도 게이트 + 정형 보류 응답 (부서 이름 없이 포탈·홈페이지 안내) | ① 이중 강제 |
+| `crisis.py` | 위기 발화를 검색·게이트보다 먼저 잡아 고정 상담 안내 (학생상담소·109·119) | |
+| `smalltalk.py` | 인사·잡담·감정 표현·빈말은 검색 없이 짧게 응대 | |
+| `sentence_limit.py` | 답변 문장 수 상한 (영어 약어 마침표는 문장 끝으로 안 셈) | |
 | `llm.py` | 상위 LLM(OpenAI 호환 API) 클라이언트 | |
 
 ## RAG 검색 (rag.py)

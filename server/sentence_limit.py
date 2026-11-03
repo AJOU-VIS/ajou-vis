@@ -1,8 +1,9 @@
 """답변 문장 수 상한 — 프롬프트(v1.3, 2~3문장)를 넘겨도 음성 답변이 길어지지 않게 하는 안전장치.
 
 문장 끝(. ? ! 다음에 공백/줄바꿈)을 셀 때 "1.75", "4.5"처럼 숫자 사이 마침표는
-뒤에 공백이 없으므로 문장 끝으로 세지 않는다. 상한에 닿으면 스트리밍을 끊어
-나머지 생성도 멈춘다(비용·지연 절약). MAX_SENTENCES=0 이면 끈다.
+뒤에 공백이 없으므로 문장 끝으로 세지 않는다. 영어 약어("9 a.m. to 6 p.m.", "e.g.")의
+마침표도 문장 끝으로 세지 않는다 — 셌을 때 영어 답의 끝 문장이 잘려 나갔다 (11/3 100문항 84-en).
+상한에 닿으면 스트리밍을 끊어 나머지 생성도 멈춘다(비용·지연 절약). MAX_SENTENCES=0 이면 끈다.
 """
 from __future__ import annotations
 
@@ -11,7 +12,11 @@ import re
 
 MAX_SENTENCES = int(os.environ.get("MAX_SENTENCES", "3"))
 
-_SENTENCE_END = re.compile(r"[.?!。](?=\s)")
+_SENTENCE_END = re.compile(
+    r"(?<!\ba\.m)(?<!\bp\.m)(?<!\be\.g)(?<!\bi\.e)(?<!\betc)(?<!\bvs)(?<!\bNo)(?<!\bDr)(?<!\bSt)"
+    r"[.?!。](?=\s)",
+    re.IGNORECASE,
+)
 
 
 def limit_text(text: str, n: int = MAX_SENTENCES) -> str:
