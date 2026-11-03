@@ -1,0 +1,5 @@
+# 치토 웹 서버 (web/server.py) — RAG 서버 가상환경(server/.venv, Colab은 /content/ragenv)에 더해 설치한다
+fastapi>=0.110
+uvicorn[standard]>=0.29
+websockets>=12
+httpx>=0.27
