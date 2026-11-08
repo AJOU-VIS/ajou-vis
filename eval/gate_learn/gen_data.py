@@ -96,8 +96,16 @@ def main():
 
     t0 = time.time()
     ok, bad = generate(pairs, llm.chat, Path(args.out), sleep=args.sleep)
-    n = sum(1 for _ in open(args.out, encoding="utf-8"))
-    print("\n완료: 성공 %d · 실패 %d · 파일의 샘플 총 %d개 (%.0f초) → %s" % (ok, bad, n, time.time() - t0, args.out))
+    rows = [json.loads(l) for l in open(args.out, encoding="utf-8") if l.strip()]
+    print("\n완료: 성공 %d · 실패 %d · 파일의 샘플 총 %d개 (%.0f초) → %s" % (ok, bad, len(rows), time.time() - t0, args.out))
+    import re
+    import statistics
+    for t in ("followup", "standalone"):
+        ls = sorted(len(re.sub(r"\s", "", r["utterance"])) for r in rows if r["type"] == t)
+        if ls:
+            print("  %-10s 발화 길이(공백 제외) 중앙값 %d · 25~75%% %d~%d · 범위 %d~%d" % (
+                t, statistics.median(ls), ls[len(ls) // 4], ls[3 * len(ls) // 4], ls[0], ls[-1]))
+    print("  → 두 종류의 길이 분포가 많이 겹쳐야 한다(이전 데이터: 꼬리질문 중앙값 12 대 독립 질문 19).")
 
 
 if __name__ == "__main__":

@@ -22,16 +22,21 @@ sys.path.insert(0, str(HERE))
 import gate_lib as L  # noqa: E402
 
 TARGETS = (0.90, 0.95, 0.98, 1.00)
-INT_COLS = ("call", "external", "signal", "label", "raw_hit", "full_hit", "raw_hit_page")
+INT_COLS = ("call", "external", "signal", "label", "label_oracle", "label_real", "raw_hit", "full_hit", "real_hit", "raw_hit_page")
 
 
-def load_rows(path):
+def load_rows(path, label: str = "auto"):
+    """label: auto=저장된 label 열(실제 재작성기로 계산했으면 real), real/oracle=해당 라벨 열을 쓴다."""
     rows = []
     for r in csv.DictReader(open(path, encoding="utf-8-sig")):
         for c in L.FEATURES:
             r[c] = float(r[c])
         for c in INT_COLS:
             r[c] = int(float(r[c]))
+        if label in ("real", "oracle") and not r["external"]:
+            r["label"] = r["label_" + label]
+            if r["label"] == -9:
+                raise SystemExit("label_real이 없습니다. build_features.py를 --rewrite real로 실행하세요.")
         rows.append(r)
     return rows
 
@@ -160,10 +165,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--features", default=str(HERE / "data" / "features.csv"))
     ap.add_argument("--out", default=str(HERE / "out"))
+    ap.add_argument("--label", choices=["auto", "real", "oracle"], default="auto", help="라벨 기준 (auto: 저장된 기본 라벨)")
     ap.add_argument("--population", choices=["nosignal", "all"], default="nosignal",
                     help="nosignal: 지금 규칙의 신호가 없는 발화만(기본, 분류기가 점수 단계를 대신하는 경우), all: 신호 있는 발화까지(분류기가 규칙 전체를 대신하는 경우)")
     args = ap.parse_args()
-    run(load_rows(args.features), args.out, population=args.population)
+    run(load_rows(args.features, args.label), args.out, population=args.population)
     print("\n저장: %s/report.md, %s/oof_predictions.csv" % (args.out, args.out))
 
 

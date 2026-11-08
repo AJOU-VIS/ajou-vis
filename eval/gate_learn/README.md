@@ -10,16 +10,19 @@
 | 라벨 | 조건 |
 |---|---|
 | 0 (건너뛰어도 됨) | 발화 그대로 검색해도 정답 문서가 들어간다 |
-| 1 (재작성이 도움됨) | 발화 그대로는 못 찾지만, 독립 질문으로 풀어 쓰면 찾는다 |
-| -1 (모호, 제외) | 풀어 써도 못 찾는다 — 검색기 한계라 게이트의 몫이 아니다 |
+| 1 (재작성이 도움됨) | 발화 그대로는 못 찾지만, **서버의 실제 재작성기가 만든 질문**으로 검색하면 찾는다 |
+| -1 (모호, 제외) | 재작성해도 못 찾는다 — 검색기 한계라 게이트의 몫이 아니다 |
+
+LLM이 미리 써 준 "풀어 쓴 질문"으로도 라벨을 만들어 두지만(`label_oracle`), 그 질문은 발화보다 정보가 많아서(예: "제적되는데…") "재작성 필요"를 후하게 판정할 수 있다. 그래서 기본은 실제 재작성기 기준(`label_real`)이다.
 
 ## 순서
 
 0. 준비: `server/.venv/bin/pip install scikit-learn`
 1. **생성** (Claude 호출, 비용 발생): `server/.venv/bin/python eval/gate_learn/gen_data.py --dry-run`으로 프롬프트를 먼저 읽고, `--n-calls 100`으로 실행 (주제 짝은 최대 약 90개, 샘플 약 640개, 약 $1 안팎, 10~20분). 끊겨도 같은 명령을 다시 실행하면 이어서 한다.
-2. **라벨·특징 계산** (과금 없음, 5~10분): `server/.venv/bin/python eval/gate_learn/build_features.py`
+2. **라벨·특징 계산** (재작성기 호출 약 600회, 약 $0.5, 10~20분): `server/.venv/bin/python eval/gate_learn/build_features.py`
+   재작성 결과는 `data/rewrite_cache.json`에 저장되어, 끊겨도 같은 명령으로 이어서 한다. 무료로 하려면 `--rewrite oracle`(라벨이 덜 현실적).
 3. **사람이 훑어보기** (10분): `data/review.csv`의 30개를 읽고 마지막 열에 OK/이상을 적는다. **이상이 20% 넘으면 데이터를 믿지 말고 프롬프트를 고친다.**
-4. **학습·평가** (몇 초): `server/.venv/bin/python eval/gate_learn/train_eval.py` → `out/report.md`
+4. **학습·평가** (몇 초): `server/.venv/bin/python eval/gate_learn/train_eval.py` → `out/report.md` (`--label oracle`로 다른 기준의 라벨과 비교해 볼 수 있다)
 5. (선택) 규칙 전체를 분류기가 대신하는 경우: `train_eval.py --population all`
 
 코드 자체 점검(가짜 데이터, API 불필요): `python3 eval/gate_learn/test_gate_learn.py`

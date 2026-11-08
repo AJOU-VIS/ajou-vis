@@ -145,14 +145,35 @@ check("라벨 1: 그대로는 못 찾고 풀어 쓰면 찾는다", mkrow([mk("�
 check("라벨 0: 그대로 찾는다", mkrow([mk("A", "a")], [mk("A", "a")])["label"] == 0)
 check("라벨 -1: 풀어 써도 못 찾으면 모호", mkrow([mk("딴", "x")], [mk("딴", "y")])["label"] == -1)
 
+# ── 4b) 실제 재작성기로 라벨 ──
+print("[4b] 실제 재작성기 라벨")
+rows_p, _ = build_features.build_rows(samples, idx.search, fake_embed, 5, rewrite_fn=lambda s: s["full_question"], log=lambda *_: None)
+check("재작성기를 쓰면 label=label_real이고 재작성 결과가 기록된다",
+      all(r["label"] == r["label_real"] for r in rows_p) and any(r["rewritten"] for r in rows_p) and all(r["label_oracle"] in (-1, 0, 1) for r in rows_p))
+rows_n, _ = build_features.build_rows(samples, idx.search, fake_embed, 5, rewrite_fn=lambda s: s["utterance"], log=lambda *_: None)
+check("아무것도 바꾸지 않는 재작성기면 '재작성 필요'가 하나도 없다", sum(1 for r in rows_n if r["label"] == 1) == 0)
+rw_calls = []
+def fake_llm(system, user, max_tokens):
+    rw_calls.append(user)
+    return "휴학 신청 기간은 언제야?"
+hist = [{"role": "user", "content": "휴학은 몇 번 가능해?"}, {"role": "assistant", "content": "통산 4년이에요."}]
+check("실제 재작성기 래퍼가 서버와 같은 형식의 대화 기록을 프롬프트에 넣는다",
+      L.make_real_rewriter(fake_llm)({"history": hist, "utterance": "기간은?"}) == "휴학 신청 기간은 언제야?"
+      and "사용자: 휴학은 몇 번 가능해?" in rw_calls[0] and "치토: 통산 4년이에요." in rw_calls[0])
+check("형태 변경 요청(NO_SEARCH)이면 원문을 그대로 쓴다",
+      L.make_real_rewriter(lambda system, user, max_tokens: "[NO_SEARCH]")({"history": hist, "utterance": "영어로"}) == "영어로")
+
 # ── 5) 학습·평가 (외부 시험 세트 포함) ──
 print("[5] 학습·평가")
 ext_path = HERE.parents[1] / "eval" / "rewrite_gate" / "cases.json"
 ext = build_features.load_external(ext_path) if ext_path.exists() else []
 ext_rows, _ = build_features.build_rows(ext, idx.search, fake_embed, 5, log=lambda *_: None)
 fp = tmp / "features.csv"
-build_features.write_csv(rows + ext_rows, fp)
+build_features.write_csv(rows_p + ext_rows, fp)
 loaded = train_eval.load_rows(fp)
+check("라벨 선택: real/oracle 열을 골라 읽는다",
+      all(r["label"] == r["label_real"] for r in train_eval.load_rows(fp, "real") if not r["external"])
+      and all(r["label"] == r["label_oracle"] for r in train_eval.load_rows(fp, "oracle") if not r["external"]))
 summary = train_eval.run(loaded, tmp / "out", log=lambda *_: None)
 summary_all = train_eval.run(loaded, tmp / "out_all", population="all", log=lambda *_: None)
 check("대상 선택: 전체 발화가 신호 없는 발화보다 많다", summary_all["n"] > summary["n"], "%d vs %d" % (summary_all["n"], summary["n"]))

@@ -7,10 +7,12 @@
 
 라벨 정의 (재작성 없이 검색했을 때 정답 문서가 LLM에 들어가는가)
   raw_hit  = 발화 그대로 검색한 상위 K개(기본 5, 서버가 LLM에 넘기는 개수)에 정답 문서가 있다
-  full_hit = 독립 질문으로 풀어 쓴 문장(full_question)으로 검색한 상위 K개에 정답 문서가 있다
+  full_hit = LLM이 미리 써 준 독립 질문(full_question)으로 검색한 상위 K개에 정답 문서가 있다 (label_oracle)
+  real_hit = 서버의 실제 재작성기(rewriter.rewrite)가 만든 질문으로 검색한 상위 K개에 정답 문서가 있다 (label_real)
   label 0 (건너뛰어도 됨)  : raw_hit
-  label 1 (재작성이 도움됨): raw_hit이 아니고 full_hit
+  label 1 (재작성이 도움됨): raw_hit이 아니고 full_hit(oracle) 또는 real_hit(real)
   label -1 (모호, 학습에서 제외): 둘 다 아님 — 재작성해도 못 찾는 검색기 한계라 게이트의 몫이 아니다
+  기본 라벨은 real이다. oracle의 풀어 쓴 질문은 발화보다 정보가 많아(예: '제적되는데…') '재작성 필요'를 후하게 판정할 수 있다.
 
 파이썬 3.9에서도 돌아가도록 쓴다(타입 힌트는 문자열로만 평가).
 """
@@ -107,7 +109,8 @@ def build_prompt(a, b):
         "   - 3개는 type=\"ambiguous\": 주제 A와 관련된 대상·항목을 가리키는 명사를 하나 넣되, 앞 대화가 없으면 어떤 제도나 절차의 이야기인지 알 수 없게 쓴다\n"
         "     (예: 전과 이야기 뒤의 \"장학금은 어떻게 돼?\", 증명서 이야기 뒤의 \"졸업생은?\", 휴학 이야기 뒤의 \"군대는?\"). 이 명사만 보면 다른 제도의 질문으로 오해할 수 있는 것이 좋다. 3개는 서로 다른 명사를 쓴다.\n"
         "   - 서로 다른 측면을 묻는다. 각 발화마다 full_question(주제 A를 분명히 밝혀 혼자서도 뜻이 통하게 다시 쓴 질문, ambiguous는 그 명사를 유지)을 함께 쓴다.\n"
-        "3) standalone: 앞 대화와 상관없이 주제 B에 대한 완결된 학생 질문 3개. 주제 B의 핵심 명사를 넣고 서로 다른 측면을 묻는다.\n\n"
+        "   - 길이를 섞는다: 4개 중 1개는 아주 짧게(공백 빼고 8~11자), 1개는 보통(13~17자), 2개는 길게(공백 빼고 22자 이상, 상황이나 조건을 덧붙여 말하되 어떤 제도 이야기인지는 앞 대화 없이는 알 수 없게 쓴다).\n"
+        "3) standalone: 앞 대화와 상관없이 주제 B에 대한 완결된 학생 질문 3개. 주제 B의 핵심 명사를 넣고 서로 다른 측면을 묻는다. 길이를 섞는다: 1개는 아주 짧게(공백 빼고 8~11자, 예: \"CU 어디에 있어?\", \"휴학 몇 번 돼?\"), 1개는 보통(13~17자), 1개는 길게(22자 이상).\n\n"
         "출력 형식:\n"
         "{\"history\": {\"user\": \"...\", \"assistant\": \"...\"},\n"
         " \"followups\": [{\"utterance\": \"...\", \"full_question\": \"...\", \"type\": \"elliptical\"}, ...],\n"
@@ -176,7 +179,23 @@ def _cos(u, v) -> float:
     return float(sum(x * y for x, y in zip(u, v)))  # 임베딩은 정규화되어 있다고 가정
 
 
-def compute_row(sample, search, embed, k: int = 5):
+def history_text(msgs) -> str:
+    """서버(app._split_request)와 같은 형식의 대화 기록 문자열."""
+    label = {"user": "사용자", "assistant": "치토"}
+    return "\n".join("%s: %s" % (label[m["role"]], m["content"]) for m in msgs)
+
+
+def make_real_rewriter(llm_chat):
+    """서버의 실제 재작성기를 부르는 함수를 만든다. NO_SEARCH(형태 변경 요청)이면 원문을 돌려준다."""
+    import rewriter  # server/rewriter.py
+
+    def fn(sample):
+        q, need = rewriter.rewrite(history_text(sample["history"]), sample["utterance"], llm_chat)
+        return q if need else sample["utterance"]
+    return fn
+
+
+def compute_row(sample, search, embed, k: int = 5, rewrite_fn=None):
     """한 샘플의 라벨과 특징을 만든다. search(text)는 SearchHit 목록, embed(list[str])는 정규화된 벡터 목록."""
     utt, full = sample["utterance"], sample["full_question"]
     prev_q = next(m["content"] for m in sample["history"] if m["role"] == "user")
@@ -190,14 +209,23 @@ def compute_row(sample, search, embed, k: int = 5):
     row["signal"] = int(rewrite_gate.followup_signal(utt) is not None)   # 1이면 지금 규칙이 이미 재작성으로 보내는 발화
     row["gold"] = ("%s|%s" % (gs, ga)) if gs is not None else ""
     row["raw_top3"] = " / ".join("%s|%s" % (h.source_name, h.article) for h in list(raw)[:3])
+    row["rewritten"] = ""
     if gs is not None:
         rh, fh = hit(raw, gs, ga, k), hit(full_hits, gs, ga, k)
         row["raw_hit"], row["full_hit"] = int(rh), int(fh)
         row["raw_hit_page"] = int(hit(raw, gs, ga, k, strict=False))
-        row["label"] = 0 if rh else (1 if fh else -1)
+        row["label_oracle"] = 0 if rh else (1 if fh else -1)
+        row["real_hit"], row["label_real"] = -1, -9          # -9: 실제 재작성기를 쓰지 않아 없음
+        if rewrite_fn is not None:
+            rw = (rewrite_fn(sample) or utt).strip() or utt
+            rw_hits = search(rw) if rw != utt else raw
+            wh = hit(rw_hits, gs, ga, k)
+            row["rewritten"], row["real_hit"] = rw, int(wh)
+            row["label_real"] = 0 if rh else (1 if wh else -1)
+        row["label"] = row["label_real"] if rewrite_fn is not None else row["label_oracle"]
     else:                                   # 직접 만든 시험 세트: 정답 문서가 없으니 종류로 라벨을 준다
-        row["raw_hit"] = row["full_hit"] = row["raw_hit_page"] = -1
-        row["label"] = 1 if sample["type"] == "followup" else 0
+        row["raw_hit"] = row["full_hit"] = row["raw_hit_page"] = row["real_hit"] = -1
+        row["label"] = row["label_oracle"] = row["label_real"] = 1 if sample["type"] == "followup" else 0
     sc = [h.score for h in raw] + [0.0, 0.0, 0.0]
     toks = _tokens(utt)
     stems = [_stem(t) for t in toks]
