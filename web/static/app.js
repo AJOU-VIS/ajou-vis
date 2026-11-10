@@ -54,7 +54,7 @@ const T = {
     foot: "답변은 학칙·학교 안내 자료를 근거로 해요. 개인 성적·신청은 처리하지 않아요.",
     ttsLabel: "음성으로 답 듣기", name: "치토", thinking: "생각하는 중", placeholder: "치토에게 물어보세요",
     hintIdle: "말하려면 오른쪽 마이크를 누르거나 스페이스바를 누르세요",
-    hintListen: "말이 끝나면 자동으로 보내요 · 다시 누르면 멈춰요",
+    hintListen: "말이 끝나면 자동으로 보내고 마이크가 꺼져요",
     emptyTitle: "무엇이든 물어보세요", emptyBody: "학사 규정, 행정 절차, 캠퍼스 시설을 학교 자료로 찾아 답해요.",
     connIdle: "연결 전", connBusy: "연결하는 중", connOk: "연결됨", connBad: "연결 끊김",
     pill: {
@@ -62,7 +62,7 @@ const T = {
       answer: "답하고 있어요", answerDone: "더 궁금한 게 있으면 물어보세요", sorry: "자료에서 확인되지 않았어요",
       noscope: "대신 처리할 수 없는 요청이에요", crisis: "상담 안내", error: "연결이 끊겼어요",
     },
-    mic: { idle: "눌러서 말하기 · <kbd>Space</kbd>", rec: "듣는 중 · 다시 누르면 멈춤", speak: "누르면 끊고 바로 말하기", off: "음성 연결 안 됨 · 텍스트로 물어보세요" },
+    mic: { idle: "눌러서 말하기 · <kbd>Space</kbd>", rec: "듣는 중 · 말이 끝나면 자동으로 멈춰요", speak: "누르면 끊고 바로 말하기", off: "음성 연결 안 됨 · 텍스트로 물어보세요" },
     tag: { answer: "근거 있음", sorry: "자료에 없음", noscope: "처리할 수 없는 요청" },
     via: { voice: "음성으로 질문", text: "텍스트로 질문", live: "듣는 중…" },
     copy: "복사", copied: "복사했어요", srcOpen: "원문 보기", evidence: "근거 원문", showEvidence: "근거 보기", hideEvidence: "접기",
@@ -81,14 +81,14 @@ const T = {
     foot: "Answers are based on Ajou's regulations and official guides. Personal records and applications aren't handled here.",
     ttsLabel: "Read answers aloud", name: "Chito", thinking: "Thinking", placeholder: "Ask Chito anything",
     hintIdle: "Press the mic on the right or the space bar to talk",
-    hintListen: "Sends when you stop talking · press again to stop",
+    hintListen: "Sends and turns off the mic when you stop talking",
     emptyTitle: "Ask me anything", emptyBody: "I answer questions about academic rules, procedures and campus facilities from Ajou's own documents.",
     connIdle: "Not connected", connBusy: "Connecting", connOk: "Connected", connBad: "Disconnected",
     pill: {
       idle: "", hello: "Hi! I'm Chito, Ajou's campus guide.", listen: "Listening", think: "Looking it up", answer: "Answering",
       answerDone: "Ask me anything else", sorry: "Not in my documents", noscope: "I can't do that for you", crisis: "Support", error: "Disconnected",
     },
-    mic: { idle: "Press to talk · <kbd>Space</kbd>", rec: "Listening · press again to stop", speak: "Press to interrupt and talk", off: "Voice unavailable · type your question" },
+    mic: { idle: "Press to talk · <kbd>Space</kbd>", rec: "Listening · stops when you finish", speak: "Press to interrupt and talk", off: "Voice unavailable · type your question" },
     tag: { answer: "Sourced", sorry: "Not in documents", noscope: "Can't do that" },
     via: { voice: "Spoken", text: "Typed", live: "Listening…" },
     copy: "Copy", copied: "Copied", srcOpen: "Open source", evidence: "Source text", showEvidence: "Show source", hideEvidence: "Hide",
@@ -419,7 +419,11 @@ function attach(c) {
     setFace("listen");
     render();
   });
-  c.addEventListener("user-turn-stopped", () => { setFace("think"); setThinking(true); render(); });
+  c.addEventListener("user-turn-stopped", () => {
+    // 말이 끝났다고 서버 VAD가 판단하면 마이크를 끈다 (다시 말하려면 마이크를 다시 누른다)
+    if (state.listening) { state.listening = false; c.setMuted(true); }
+    setFace("think"); setThinking(true); render();
+  });
   c.addEventListener("transcript", (/** @type {any} */ e) => {
     const d = e.detail;
     if (d.role === "user") {
