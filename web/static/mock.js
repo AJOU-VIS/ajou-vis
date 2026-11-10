@@ -5,6 +5,8 @@
  * (11/3 마지막 스모크의 실제 답 + 같은 질문의 실제 검색 결과, scripts/make_mock_fixtures.py).
  */
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// 음성 서버처럼 TTS로 못 읽는 기호(· 등)를 지운 글자를 보낸다 (speech-to-speech LLM/utils.py remove_unspeechable)
+const UNSPEECHABLE = /[^\p{L}\p{N}\p{M}_\s.,!?;:'"\-()\/\\@#%&*+=$€£¥₹₽¢\[\]{}<>~`^|…—–，。！？；：、]/gu;
 
 /** @param {string} text @param {number} n */
 function pieces(text, n) {
@@ -85,19 +87,22 @@ export class MockClient extends EventTarget {
 
   async _answer() {
     const f = this.fixture;
-    await sleep(300);
+    await sleep(1500); // 검색·LLM 시간 — 화면에 "…"가 보이는지 확인
     this._speaking = true;
     this._setStatus("ai-speaking");
     this._levels(true);
-    for (const text of pieces(f.answer, 4)) {
-      await sleep(160);
-      this._emit("transcript", { role: "assistant", text, partial: true, responseId: "r1" });
+    // 실제 음성 서버처럼 문장 단위로 글자를 보낸다 (한 문장씩 합성되는 대로)
+    const spoken = f.answer.replace(UNSPEECHABLE, "");
+    const sentences = spoken.split(/(?<=[.!?])\s+/);
+    for (let i = 1; i <= sentences.length; i += 1) {
+      this._emit("transcript", { role: "assistant", text: sentences.slice(0, i).join(" "), partial: true, responseId: "r1" });
+      await sleep(900);
     }
-    this._emit("transcript", { role: "assistant", text: f.answer, partial: false, responseId: "r1" });
+    this._emit("transcript", { role: "assistant", text: spoken, partial: false, responseId: "r1" });
     await sleep(120);
     this._speaking = false;
     this._levels(false);
     this._setStatus("connected");
-    this._emit("response-finished", { responseId: "r1", status: "completed", audible: true, transcript: f.answer });
+    this._emit("response-finished", { responseId: "r1", status: "completed", audible: true, transcript: spoken });
   }
 }
