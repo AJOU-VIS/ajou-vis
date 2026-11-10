@@ -21,20 +21,40 @@ const FACE_FILE = {
   sorry: "chito_sorry", noscope: "chito_noscope", crisis: "chito_crisis", error: "chito_error",
 };
 const KIND_FACE = { answer: "answer", sorry: "sorry", noscope: "noscope", crisis: "crisis", smalltalk: "hello" };
+// 대화 속 프로필은 기본형 한 장으로 고정한다 (상황별 표정은 오른쪽 스테이지에서만)
+const AVATAR = `<img src="assets/chito/${FACE_FILE.idle}.png" alt="">`;
 const HOMEPAGE = "https://www.ajou.ac.kr";
 
 const MIC_SVG = '<svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="17" y="6" width="14" height="24" rx="7" fill="currentColor"/>'
   + '<path d="M11 22a13 13 0 0 0 26 0" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>'
   + '<path d="M24 35v6M17 42h14" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg>';
 const MIC_OFF_SVG = MIC_SVG.replace("</svg>", '<path d="M9 9l30 30" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/></svg>');
+// 카드·말풍선 아이콘 — 글자 기호(▤ ⌂ ☎ ⌨)는 글꼴마다 기준선이 달라 상자 가운데에 안 맞아서 SVG로 그린다
+const svgIcon = (/** @type {string} */ paths) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"'
+  + ` stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+const ICON = {
+  doc: svgIcon('<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>'),
+  home: svgIcon('<path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/>'),
+  phone: svgIcon('<path d="M5 4h3.5l2 5-2.5 1.5a11 11 0 0 0 5.5 5.5l1.5-2.5 5 2V19a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>'),
+  keyboard: svgIcon('<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/>'),
+};
+// 답 글자를 한 글자씩 보이는 속도 (초당 글자). 음성 서버가 문장 단위로 보내도 일정한 속도로 흘러가게 하고,
+// 다음 문장이 와도 서두르지 않는다 (치토 음성은 초당 약 6음절이라 글자가 여전히 소리보다 앞선다).
+const TYPE_CPS = 18;
+const REDUCED_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
+// 음성 서버(speech-to-speech LLM/utils.py remove_unspeechable)는 TTS로 못 읽는 기호(· 등)를 지운 글자를
+// 화면에도 보낸다. 답이 끝나면 RAG 턴 기록의 원래 답으로 바꿔 보인다 — 같은 규칙으로 지워서 비교한다.
+const UNSPEECHABLE = /[^\p{L}\p{N}\p{M}_\s.,!?;:'"\-()\/\\@#%&*+=$€£¥₹₽¢\[\]{}<>~`^|…—–，。！？；：、]/gu;
+// 음성 연결 SDK 번들 (약 4.8MB) — 첫 화면을 막지 않게 화면이 뜬 뒤 받는다
+const SDK_SRC = "vendor/openai-realtime-agents.umd.js";
 
 const T = {
   ko: {
     brandSub: "캠퍼스 안내 치토", newChat: "새 대화", tryAsking: "이렇게 물어보세요", langAuto: "자동",
     foot: "답변은 학칙·학교 안내 자료를 근거로 해요. 개인 성적·신청은 처리하지 않아요.",
-    ttsLabel: "음성으로 답 듣기", name: "치토", placeholder: "치토에게 물어보세요",
+    ttsLabel: "음성으로 답 듣기", name: "치토", thinking: "생각하는 중", placeholder: "치토에게 물어보세요",
     hintIdle: "말하려면 오른쪽 마이크를 누르거나 스페이스바를 누르세요",
-    hintListen: "말이 끝나면 자동으로 보내요 · 다시 누르면 멈춰요",
+    hintListen: "말이 끝나면 자동으로 보내고 마이크가 꺼져요",
     emptyTitle: "무엇이든 물어보세요", emptyBody: "학사 규정, 행정 절차, 캠퍼스 시설을 학교 자료로 찾아 답해요.",
     connIdle: "연결 전", connBusy: "연결하는 중", connOk: "연결됨", connBad: "연결 끊김",
     pill: {
@@ -42,7 +62,7 @@ const T = {
       answer: "답하고 있어요", answerDone: "더 궁금한 게 있으면 물어보세요", sorry: "자료에서 확인되지 않았어요",
       noscope: "대신 처리할 수 없는 요청이에요", crisis: "상담 안내", error: "연결이 끊겼어요",
     },
-    mic: { idle: "눌러서 말하기 · <kbd>Space</kbd>", rec: "듣는 중 · 다시 누르면 멈춤", speak: "누르면 끊고 바로 말하기", off: "음성 연결 안 됨 · 텍스트로 물어보세요" },
+    mic: { idle: "눌러서 말하기 · <kbd>Space</kbd>", rec: "듣는 중 · 말이 끝나면 자동으로 멈춰요", speak: "누르면 끊고 바로 말하기", off: "음성 연결 안 됨 · 텍스트로 물어보세요" },
     tag: { answer: "근거 있음", sorry: "자료에 없음", noscope: "처리할 수 없는 요청" },
     via: { voice: "음성으로 질문", text: "텍스트로 질문", live: "듣는 중…" },
     copy: "복사", copied: "복사했어요", srcOpen: "원문 보기", evidence: "근거 원문", showEvidence: "근거 보기", hideEvidence: "접기",
@@ -59,16 +79,16 @@ const T = {
   en: {
     brandSub: "Ajou campus guide", newChat: "New chat", tryAsking: "Try asking", langAuto: "Auto",
     foot: "Answers are based on Ajou's regulations and official guides. Personal records and applications aren't handled here.",
-    ttsLabel: "Read answers aloud", name: "Chito", placeholder: "Ask Chito anything",
+    ttsLabel: "Read answers aloud", name: "Chito", thinking: "Thinking", placeholder: "Ask Chito anything",
     hintIdle: "Press the mic on the right or the space bar to talk",
-    hintListen: "Sends when you stop talking · press again to stop",
+    hintListen: "Sends and turns off the mic when you stop talking",
     emptyTitle: "Ask me anything", emptyBody: "I answer questions about academic rules, procedures and campus facilities from Ajou's own documents.",
     connIdle: "Not connected", connBusy: "Connecting", connOk: "Connected", connBad: "Disconnected",
     pill: {
       idle: "", hello: "Hi! I'm Chito, Ajou's campus guide.", listen: "Listening", think: "Looking it up", answer: "Answering",
       answerDone: "Ask me anything else", sorry: "Not in my documents", noscope: "I can't do that for you", crisis: "Support", error: "Disconnected",
     },
-    mic: { idle: "Press to talk · <kbd>Space</kbd>", rec: "Listening · press again to stop", speak: "Press to interrupt and talk", off: "Voice unavailable · type your question" },
+    mic: { idle: "Press to talk · <kbd>Space</kbd>", rec: "Listening · stops when you finish", speak: "Press to interrupt and talk", off: "Voice unavailable · type your question" },
     tag: { answer: "Sourced", sorry: "Not in documents", noscope: "Can't do that" },
     via: { voice: "Spoken", text: "Typed", live: "Listening…" },
     copy: "Copy", copied: "Copied", srcOpen: "Open source", evidence: "Source text", showEvidence: "Show source", hideEvidence: "Hide",
@@ -84,12 +104,14 @@ const T = {
   },
 };
 
-/** @typedef {{id: string, role: "user"|"ai", text: string, partial: boolean, via?: string, kind?: string, sources?: any[], contacts?: any[], open?: Set<number>}} Msg */
+/** shown: 화면에 보인 글자 수 (한 글자씩 보이는 중), carry: 다음 프레임으로 넘기는 글자 수의 소수 부분
+ * @typedef {{id: string, role: "user"|"ai", text: string, partial: boolean, via?: string, kind?: string, sources?: any[], contacts?: any[], open?: Set<number>, shown?: number, carry?: number}} Msg */
 const state = {
   langSel: "auto", lastLang: "ko",
   /** @type {Msg[]} */ messages: [],
   face: "hello", pill: "hello",
   listening: false, speaking: false,
+  thinking: false, // 질문을 보냈고 첫 답 글자를 기다리는 중 → 대화에 "…" 표시
   conn: "idle", sdkMissing: false,
   lastSeq: 0, tts: true, realMic: false,
 };
@@ -199,7 +221,7 @@ function cardsHtml(m) {
     if (!shown.length && sources.length && m.kind === "answer") shown.push(sources[0]);
     shown.forEach((g, i) => {
       const open = m.open?.has(i);
-      parts.push(`<div class="src"><div class="src-head"><div class="src-ico">▤</div>`
+      parts.push(`<div class="src"><div class="src-head"><div class="src-ico">${ICON.doc}</div>`
         + `<div style="min-width:0"><div class="src-doc">${esc(g.doc)}</div><div class="src-art">${esc((g.articles || [])[0] || "")}</div></div>`
         + `<div class="src-tools"><button data-toggle="${esc(m.id)}:${i}">${esc(open ? s.hideEvidence : s.showEvidence)}</button>`
         + `${g.url ? `<a href="${esc(g.url)}" target="_blank" rel="noopener">${esc(s.srcOpen)} ↗</a>` : ""}</div></div>`
@@ -207,7 +229,7 @@ function cardsHtml(m) {
     });
   }
   if (m.kind === "sorry" && !(m.contacts || []).length) {
-    parts.push(`<a class="src" href="${HOMEPAGE}" target="_blank" rel="noopener"><div class="src-head"><div class="src-ico">⌂</div>`
+    parts.push(`<a class="src" href="${HOMEPAGE}" target="_blank" rel="noopener"><div class="src-head"><div class="src-ico">${ICON.home}</div>`
       + `<div><div class="src-doc">${esc(s.checkPlace)}</div><div class="src-art">${HOMEPAGE.replace("https://", "")}</div></div>`
       + `<div class="src-tools">↗</div></div></a>`);
   }
@@ -215,7 +237,7 @@ function cardsHtml(m) {
     parts.push(`<a class="goto" href="${esc(config.portalUrl)}" target="_blank" rel="noopener">${esc(s.portal)} ↗</a>`);
   }
   for (const c of m.contacts || []) {
-    parts.push(`<div class="contact"><div class="ico">☎</div><div><b>${esc(c.dept)}</b><div class="sub">${esc(c.label)}</div></div>`
+    parts.push(`<div class="contact"><div class="ico">${ICON.phone}</div><div><b>${esc(c.dept)}</b><div class="sub">${esc(c.label)}</div></div>`
       + `${c.phone ? `<span class="num">${esc(c.phone)}</span>` : ""}</div>`);
   }
   return parts.length ? `<div class="cards">${parts.join("")}</div>` : "";
@@ -237,18 +259,72 @@ function renderThread() {
   col.innerHTML = state.messages.map((m) => {
     if (m.role === "user") {
       const via = m.partial ? s.via.live : m.via === "voice" ? s.via.voice : s.via.text;
-      const icon = m.via === "voice" ? MIC_SVG.replace("<svg ", '<svg width="13" height="13" ') : "⌨";
+      const icon = m.via === "voice" ? MIC_SVG : ICON.keyboard;
       return `<div class="msg-user"><div class="bubble-user${m.partial ? " live" : ""}">${esc(m.text)}</div><div class="via">${icon} ${esc(via)}</div></div>`;
     }
-    const face = m.kind ? (KIND_FACE[/** @type {keyof typeof KIND_FACE} */ (m.kind)] || "answer") : "answer";
     const tag = m.kind && s.tag[/** @type {keyof typeof s.tag} */ (m.kind)];
-    return `<div class="msg-ai"><div class="avatar"><img src="assets/chito/${FACE_FILE[/** @type {keyof typeof FACE_FILE} */ (face)]}.png" alt=""></div><div>`
+    const shown = m.shown ?? m.text.length;
+    const typing = m.partial || shown < m.text.length; // 글자를 다 보인 뒤에 복사 버튼·출처 카드를 붙인다
+    return `<div class="msg-ai"><div class="avatar">${AVATAR}</div><div>`
       + `<div class="ai-name">${esc(s.name)}${tag ? ` <span class="tag">${esc(tag)}</span>` : ""}</div>`
-      + `<div class="ai-text${m.partial ? " typing" : ""}">${esc(m.text)}</div>`
-      + `${m.partial ? "" : `<div class="ai-actions"><button data-copy="${esc(m.id)}">⧉ ${esc(s.copy)}</button></div>`}`
-      + `${cardsHtml(m)}</div></div>`;
-  }).join("");
+      + `<div class="ai-text${typing ? " typing" : ""}" data-type="${esc(m.id)}">${esc(m.text.slice(0, shown))}</div>`
+      + `${typing ? "" : `<div class="ai-actions"><button data-copy="${esc(m.id)}">⧉ ${esc(s.copy)}</button></div>${cardsHtml(m)}`}`
+      + "</div></div>";
+  }).join("") + (state.thinking
+    ? `<div class="msg-ai"><div class="avatar">${AVATAR}</div><div>`
+      + `<div class="ai-name">${esc(s.name)}</div><div class="dots" role="status" aria-label="${esc(s.thinking)}"><i></i><i></i><i></i></div></div></div>`
+    : "");
   if (stick) thread.scrollTop = thread.scrollHeight;
+}
+
+// ── 답 글자를 한 글자씩 ───────────────────────────────────────────
+// requestAnimationFrame은 탭이 가려지면 멈춰서 답·카드가 돌아올 때까지 안 나오므로 타이머로 돌린다.
+const TYPE_TICK_MS = 30;
+let typerTimer = 0;
+let typerLast = 0;
+
+function kickTyper() {
+  if (typerTimer) return;
+  typerLast = performance.now();
+  typerTimer = window.setTimeout(typeStep, TYPE_TICK_MS);
+}
+
+/** 보이는 글자 수를 늘리고 그 말풍선 글자만 바꾼다 (대화 전체를 다시 그리지 않음). */
+function typeStep() {
+  typerTimer = 0;
+  const now = performance.now();
+  const dt = Math.min(0.25, (now - typerLast) / 1000);
+  typerLast = now;
+  const thread = $("#thread");
+  const stick = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 80;
+  let busy = false;
+  let finished = false;
+  for (const m of state.messages) {
+    if (m.role !== "ai" || m.shown === undefined || m.shown >= m.text.length) continue;
+    // 다른 탭을 보고 있으면 천천히 풀 이유가 없으니 남은 글자를 한 번에 보인다
+    m.carry = document.hidden ? Infinity : (m.carry || 0) + dt * TYPE_CPS;
+    const step = Math.min(m.text.length - m.shown, Math.floor(m.carry));
+    if (step > 0) {
+      m.carry = document.hidden ? 0 : m.carry - step;
+      const el = document.querySelector(`[data-type="${CSS.escape(m.id)}"]`);
+      // 새 글자만 덧붙여 그 글자에만 떠오르는 효과를 준다 (.ch)
+      if (el) el.append(...[...m.text.slice(m.shown, m.shown + step)].map((ch) => Object.assign(document.createElement("span"), { className: "ch", textContent: ch })));
+      m.shown += step;
+    }
+    if (m.shown < m.text.length) busy = true;
+    else finished = true;
+  }
+  if (finished) window.setTimeout(renderThread, 320); // 마지막 글자가 다 떠오른 뒤 복사 버튼·출처 카드를 붙인다 (.ch 0.3초)
+  if (stick) thread.scrollTop = thread.scrollHeight;
+  if (busy) typerTimer = window.setTimeout(typeStep, TYPE_TICK_MS);
+}
+
+let thinkingTimer = 0;
+/** 질문을 보냈으면 첫 답 글자가 올 때까지 "…"를 보인다. 답이 끝내 안 오면 1분 뒤 지운다. @param {boolean} on */
+function setThinking(on) {
+  state.thinking = on;
+  clearTimeout(thinkingTimer);
+  if (on) thinkingTimer = window.setTimeout(() => { state.thinking = false; renderThread(); }, 60000);
 }
 
 function render() { renderStatic(); renderStage(); renderThread(); }
@@ -259,6 +335,7 @@ function msgFor(id, role) {
   let m = state.messages.find((x) => x.id === id);
   if (!m) {
     m = { id, role, text: "", partial: true };
+    if (role === "ai" && !REDUCED_MOTION) m.shown = 0; // 답은 한 글자씩 보인다 (움직임 줄이기 설정이면 바로)
     state.messages.push(m);
   }
   return m;
@@ -268,19 +345,39 @@ function msgFor(id, role) {
 function setFace(face, pill = face) { state.face = face; state.pill = pill; }
 
 async function fetchTurn() {
-  if (MOCK) return fixture ? { ...fixture.turn, seq: state.lastSeq + 1 } : null;
+  if (MOCK) return fixture ? { ...fixture.turn, answer: fixture.answer, seq: state.lastSeq + 1 } : null;
   try {
     const r = await fetch(`api/turn?after=${state.lastSeq}`);
     return r.ok ? (await r.json()).turn : null;
   } catch { return null; }
 }
 
-/** 답이 끝나면 RAG 서버 턴 기록으로 출처·연락처·표정을 붙인다. @param {Msg} m */
+/** 음성용으로 지워진 기호(·)만 다르고 같은 답이면 원래 답으로 바꾸고, 이미 보인 글자 수를 그만큼 옮긴다.
+ * 말을 끊어 답이 잘린 경우처럼 내용이 다르면 그대로 둔다. @param {Msg} m @param {string} original */
+function restoreSymbols(m, original) {
+  if (!original || original === m.text) return;
+  const squash = (/** @type {string} */ s) => s.replace(/\s+/g, "");
+  if (squash(original.replace(UNSPEECHABLE, "")) !== squash(m.text)) return;
+  if (m.shown !== undefined) {
+    let i = 0;
+    let j = 0;
+    while (i < m.shown && j < original.length) {
+      if (/\s/.test(m.text[i])) { i += 1; continue; }
+      if (original[j] === m.text[i]) i += 1;
+      j += 1;
+    }
+    m.shown = j;
+  }
+  m.text = original;
+}
+
+/** 답이 끝나면 RAG 서버 턴 기록으로 원래 답 글자·출처·연락처·표정을 붙인다. @param {Msg} m */
 async function attachTurn(m) {
   for (let i = 0; i < 6; i += 1) {
     const turn = await fetchTurn();
     if (turn && turn.seq > state.lastSeq) {
       state.lastSeq = turn.seq;
+      restoreSymbols(m, turn.answer || "");
       m.kind = turn.kind;
       m.sources = turn.sources || [];
       m.contacts = turn.contacts || [];
@@ -322,7 +419,11 @@ function attach(c) {
     setFace("listen");
     render();
   });
-  c.addEventListener("user-turn-stopped", () => { setFace("think"); renderStage(); });
+  c.addEventListener("user-turn-stopped", () => {
+    // 말이 끝났다고 서버 VAD가 판단하면 마이크를 끈다 (다시 말하려면 마이크를 다시 누른다)
+    if (state.listening) { state.listening = false; c.setMuted(true); }
+    setFace("think"); setThinking(true); render();
+  });
   c.addEventListener("transcript", (/** @type {any} */ e) => {
     const d = e.detail;
     if (d.role === "user") {
@@ -331,14 +432,20 @@ function attach(c) {
       m.text = d.text;
       m.partial = d.partial;
       if (!d.partial) {
-        if (!d.text) state.messages = state.messages.filter((x) => x !== m);
+        if (!d.text) { state.messages = state.messages.filter((x) => x !== m); setThinking(false); } // 말소리가 아니었음
         else state.lastLang = detectLang(d.text);
       }
     } else {
-      const m = msgFor(`a-${d.responseId}`, "ai");
+      const id = `a-${d.responseId}`;
+      const isNew = !state.messages.some((x) => x.id === id);
+      const m = msgFor(id, "ai");
       m.text = d.text;
       m.partial = true;
+      setThinking(false);
       if (state.face !== "answer") setFace("answer");
+      kickTyper();
+      // 이어지는 문장은 한 글자씩 붙이는 쪽(typeStep)이 그린다 — 대화를 다시 그리면 떠오르던 글자가 끊긴다
+      if (!isNew) { renderStage(); return; }
     }
     render();
   });
@@ -346,21 +453,38 @@ function attach(c) {
     const d = e.detail;
     const m = state.messages.find((x) => x.id === `a-${d.responseId}`) || [...state.messages].reverse().find((x) => x.role === "ai");
     state.speaking = false;
+    setThinking(false);
     if (!m) { setFace(state.listening ? "listen" : "hello"); render(); return; }
     m.partial = false;
     if (d.transcript) m.text = d.transcript;
     setFace("answer", "answerDone");
     render();
+    kickTyper();
     void attachTurn(m);
   });
   c.addEventListener("server-error", (/** @type {any} */ e) => toast(String(e.detail?.error?.message || e.detail?.error || "error")));
   c.addEventListener("error", () => {
     state.conn = "bad";
     state.listening = false;
+    setThinking(false);
     setFace("error");
     toast(t().errConnect);
     render();
   });
+}
+
+/** @type {Promise<void> | null} */ let sdkLoading = null;
+/** 음성 연결 SDK를 한 번만 받는다 (첫 화면 뒤 미리 받기 시작하고, 연결할 때 끝날 때까지 기다린다). */
+function loadSdk() {
+  if (/** @type {any} */ (globalThis).OpenAIAgentsRealtime) return Promise.resolve();
+  sdkLoading = sdkLoading || new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = SDK_SRC;
+    script.onload = () => resolve();
+    script.onerror = () => { sdkLoading = null; reject(new Error(t().errSdk)); };
+    document.head.append(script);
+  });
+  return sdkLoading;
 }
 
 /** @param {boolean} wantMic */
@@ -373,9 +497,11 @@ async function connect(wantMic) {
     await client.connect();
     return;
   }
-  if (!(/** @type {any} */ (globalThis).OpenAIAgentsRealtime)) {
+  try {
+    await loadSdk();
+  } catch (err) {
     state.sdkMissing = true;
-    throw new Error(t().errSdk);
+    throw err;
   }
   /** @type {MediaStream | null} */ let micStream = null;
   state.realMic = false;
@@ -420,6 +546,7 @@ async function ensureConnected(wantMic) {
 function connectFailed(err) {
   state.listening = false;
   state.conn = "bad";
+  setThinking(false);
   setFace("error");
   toast(err?.message && err.message !== "Realtime transport disconnected" ? err.message : t().errConnect);
   render();
@@ -468,6 +595,7 @@ async function sendText(text) {
   state.lastLang = detectLang(text);
   state.messages.push({ id: `t-${Date.now()}`, role: "user", text, partial: false, via: "text" });
   setFace("think");
+  setThinking(true);
   render();
   try {
     await ensureConnected(false);
@@ -482,6 +610,7 @@ async function newChat() {
   state.messages = [];
   state.listening = false;
   state.speaking = false;
+  setThinking(false);
   state.conn = "idle";
   setFace("hello");
   document.body.classList.remove("menu-open");
@@ -548,8 +677,8 @@ async function init() {
     const el = /** @type {HTMLElement} */ (e.target);
     if (el.tagName === "IMG") el.style.visibility = "hidden";
   }, true);
-  if (!MOCK && !(/** @type {any} */ (globalThis).OpenAIAgentsRealtime)) state.sdkMissing = true;
   render();
+  if (!MOCK) void loadSdk().catch(() => { state.sdkMissing = true; renderStage(); });
   if (MOCK) {
     const fixtures = await loadFixtures();
     if (MOCK === "listen") fixture = { ...fixtures.answer, via: "voice", stopAfterListening: true };

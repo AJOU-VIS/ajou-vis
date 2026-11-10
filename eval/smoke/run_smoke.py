@@ -413,11 +413,25 @@ def prompt_version() -> str:
     return m.group(0) if m else "?"
 
 
+def _price(model: str | None):
+    """모델 이름(날짜 붙은 'claude-haiku-4-5-20251001' 포함)의 가격. 긴 이름부터 맞춰 opus-5와 opus-5-5를 구분한다."""
+    for name in sorted(PRICES, key=len, reverse=True):
+        if model and model.startswith(name):
+            return PRICES[name]
+    return None
+
+
 def cost_usd(model: str, records: list[dict]) -> tuple[int, int, float | None]:
-    tin = sum(c["input_tokens"] for r in records for c in r["llm_calls"])
-    tout = sum(c["output_tokens"] for r in records for c in r["llm_calls"])
-    price = PRICES.get(model)
-    usd = (tin * price[0] + tout * price[1]) / 1_000_000 if price else None
+    """호출마다 실제로 쓴 모델 가격으로 계산한다 (재작성·번역은 LLM_AUX_MODEL로 따로 나간다)."""
+    calls = [c for r in records for c in r["llm_calls"]]
+    tin = sum(c["input_tokens"] for c in calls)
+    tout = sum(c["output_tokens"] for c in calls)
+    usd = 0.0
+    for c in calls:
+        price = _price(c.get("model")) or _price(model)
+        if price is None:
+            return tin, tout, None
+        usd += (c["input_tokens"] * price[0] + c["output_tokens"] * price[1]) / 1_000_000
     return tin, tout, usd
 
 

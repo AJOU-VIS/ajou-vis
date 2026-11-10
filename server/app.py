@@ -173,7 +173,7 @@ def chat_completions(req: ChatRequest):
         question, need_search = utterance, True
     else:
         # 팔로업 재작성 → 검색 필요 여부 판정
-        question, need_search = rewriter.rewrite(history, utterance, llm.chat)
+        question, need_search = rewriter.rewrite(history, utterance, llm.aux_chat)
         is_seat = need_search and realtime.is_seat_question(question)
 
     hits = []
@@ -183,7 +183,7 @@ def chat_completions(req: ChatRequest):
             return _respond(gate.deferral_message(lang), req, {**turn, "path": "gate_block"})
     else:
         # ② 검색 → ① 신뢰도 게이트 (영어 질문은 한국어 검색어로 옮겨 검색한다)
-        hits = (retriever.search(rewriter.search_query(question, lang, llm.chat))
+        hits = (retriever.search(rewriter.search_query(question, lang, llm.aux_chat))
                 if need_search else [])
         if need_search and not gate.passes(hits):
             return _respond(gate.deferral_message(lang), req, {**turn, "path": "gate_block", "hits": hits})
