@@ -13,6 +13,9 @@ rules_crawler.py는 부칙을 조항 분할 전에 잘라내고 있어서 이런
 - 학생에게 적용되는 내용(졸업학점·학사경고·성적·학점·수강신청 등)이 있는 항목만 남긴다.
   대학원 학과 신설 같은 항목까지 넣으면 검색에 잡음이 늘어난다.
 - 결과는 rules_crawler의 조항과 같은 형식(article_no, article_title, text)이라 embed_corpus.py를 고칠 필요가 없다.
+- 페이지에는 부칙 뒤(또는 앞)에 개정 조문 목록 같은 "제42조(…)" 줄이 더 붙어 있다. 부칙 항목은 제1조 부근의
+  작은 번호에서 시작해 조금씩 늘어나는 번호이므로, 번호가 크게 뛰거나 늘지 않으면 거기서 멈춰 그 뒤 조문이
+  부칙으로 섞이지 않게 한다. (삭제된 조가 있으면 번호가 건너뛸 수 있어 MAX_GAP까지는 허용한다.)
 - selenium 없이 텍스트만으로 동작한다 (시험: test_addenda_parser.py).
 """
 import re
@@ -24,12 +27,21 @@ ADDENDA_HEADER = re.compile(
 ITEM_LINE = re.compile(r"(?m)^[ \t]*(제\d+조(?:의\d+)?)\(([^)\n]+)\)")
 ITEM_ANY = re.compile(r"(?<![가-힣0-9])(제\d+조(?:의\d+)?)\(([^)\n]+)\)")
 
-DEFAULT_KEYWORDS = ("졸업학점", "학사경고", "성적", "학점", "수강신청", "졸업요건", "조기졸업", "학사과정")
+DEFAULT_KEYWORDS = ("졸업학점", "학사경고", "성적", "학점", "수강신청", "졸업요건", "조기졸업", "학사과정",
+                    "제45조", "제46조", "제47조", "제50조", "제51조")   # 학점인정·성적·학사경고·졸업요건·조기졸업 조문을 가리키는 부칙
+FIRST_MAX = 3      # 부칙 첫 항목은 제1조(시행일) 부근이다
+MAX_GAP = 3        # 다음 항목 번호는 앞 번호보다 크고 이 값 이하로만 건너뛴다
 MAX_CHARS = 1500   # 마지막 부칙 뒤에 페이지 바닥글이 붙어도 한 항목이 너무 길어지지 않게
 
 
 def _squash(s):
     return re.sub(r"\s+", "", s)
+
+
+def _number(label):
+    """'제6조' -> (6, 0), '제44조의2' -> (44, 2)"""
+    m = re.match(r"제(\d+)조(?:의(\d+))?", label)
+    return int(m.group(1)), int(m.group(2) or 0)
 
 
 def parse_addenda(page_text, keywords=DEFAULT_KEYWORDS, max_chars=MAX_CHARS):
@@ -45,8 +57,17 @@ def parse_addenda(page_text, keywords=DEFAULT_KEYWORDS, max_chars=MAX_CHARS):
             loose = list(ITEM_ANY.finditer(body))
             if len(loose) > len(items):
                 items = loose
-        for j, m in enumerate(items):
-            e = items[j + 1].start() if j + 1 < len(items) else len(body)
+        valid, prev = [], 0                       # 부칙 항목은 작은 번호에서 시작해 조금씩 늘어난다
+        for m in items:
+            no, sub_no = _number(m.group(1))
+            ok = sub_no == 0 and ((not valid and no <= FIRST_MAX) or (valid and prev < no <= prev + MAX_GAP))
+            if not ok:                            # 번호가 크게 뛰거나 늘지 않으면 부칙이 아닌 조문(개정 조문 목록 등)
+                break
+            valid.append(m)
+            prev = no
+        tail_end = items[len(valid)].start() if len(valid) < len(items) else len(body)
+        for j, m in enumerate(valid):
+            e = valid[j + 1].start() if j + 1 < len(valid) else tail_end   # 마지막 항목은 끊긴 지점까지만
             text = body[m.start():e].strip()[:max_chars]
             title = m.group(2).strip()
             if not any(k in title + text for k in keywords):
