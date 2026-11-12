@@ -41,12 +41,14 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from bs4 import BeautifulSoup
 
+from addenda_parser import parse_addenda   # 부칙(경과 조치) 수집
+
 
 # ── 1. 크롤링 대상 규정 목록 ──────────────────────────────────────────
 # rules.ajou.ac.kr 규정 목록에서 확인한 detail 페이지 ID.
 # 나중에 더 추가하고 싶은 규정이 있으면 여기에 한 줄씩 추가하면 됨.
 TARGET_RULES = [
-    {"name": "아주대학교 학칙", "rule_id": 594},
+    {"name": "아주대학교 학칙", "rule_id": 594, "addenda": True},   # 부칙에 학번별 졸업학점 예외가 있다
     {"name": "장학금 지급규칙", "rule_id": 288},
     {"name": "외국인학생 지원 및 관리에 관한 규칙", "rule_id": 293},
 ]
@@ -187,7 +189,7 @@ def split_into_articles(full_text: str) -> list[dict]:
     return articles
 
 
-def crawl_rule(name: str, rule_id: int) -> dict:
+def crawl_rule(name: str, rule_id: int, include_addenda: bool = False) -> dict:
     url = BASE_URL.format(rule_id=rule_id)
     print(f"[크롤링 시작] {name} ({url})")
 
@@ -215,8 +217,17 @@ def crawl_rule(name: str, rule_id: int) -> dict:
     # real_text가 아니라 soup 전체 텍스트를 넘긴다.
     meta = extract_meta(soup.get_text("\n", strip=True), name)
     articles = split_into_articles(real_text)
+    print(f"  -> 본칙 조항 {len(articles)}개 추출")
 
-    print(f"  -> 조항 {len(articles)}개 추출")
+    # 부칙은 본칙 분할 전에 잘라냈으므로(cut_before_addenda) 페이지 전체 텍스트에서 따로 뽑는다.
+    # 학생에게 적용되는 항목(졸업학점·학사경고·성적 등)만 같은 형식의 조항으로 덧붙인다.
+    if include_addenda:
+        addenda, dropped = parse_addenda(soup.get_text("\n", strip=True))
+        print(f"  -> 부칙 항목 {len(addenda)}개 추가 (학생 관련 키워드가 없어 제외 {dropped}개)")
+        if not addenda:
+            print("  !! 경고: 부칙 항목을 찾지 못함 -> output/_debug_html 에서 '기획팀-' 문구가 있는지 확인")
+        articles += addenda
+
     return {
         "rule_name": name,
         "rule_id": rule_id,
@@ -233,7 +244,7 @@ def main():
 
     for rule in TARGET_RULES:
         try:
-            result = crawl_rule(rule["name"], rule["rule_id"])
+            result = crawl_rule(rule["name"], rule["rule_id"], rule.get("addenda", False))
         except Exception as e:
             print(f"  !! 실패: {rule['name']} - {e}")
             continue
