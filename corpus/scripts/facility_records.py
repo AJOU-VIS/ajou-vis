@@ -84,7 +84,8 @@ def load_facility_file(data):
                             continue
                         entities.setdefault(labels.get(key, key), []).append("%s: %s" % (label, value) if label else str(value))
                 for entity_name, parts in entities.items():
-                    records.append(_record(page, entity_name, "%s (%s) - %s" % (entity_name, page_name, ", ".join(parts))))
+                    kind = page_name + (" · " + title if title else "")   # 예: '편의시설 · 교내 편의점에 관한 내용'
+                    records.append(_record(page, entity_name, "%s (%s) - %s" % (entity_name, kind, ", ".join(parts))))
             else:
                 head = page_name + (" " + title if title else "")
                 for row in table:
