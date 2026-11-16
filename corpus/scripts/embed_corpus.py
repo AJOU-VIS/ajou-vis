@@ -38,6 +38,8 @@ import chromadb
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
 
+from chunk_context import with_context
+
 # ── 설정 ──────────────────────────────────────────────────────────
 RAW_DIR = Path(__file__).parent.parent / "raw"
 DB_DIR = Path(__file__).parent.parent / "chroma_db"
@@ -170,7 +172,7 @@ def build_chunks(articles: list[dict]) -> tuple[list[str], list[dict], list[str]
             pieces = splitter.split_text(text)
 
         for i, piece in enumerate(pieces):
-            documents.append(piece)
+            documents.append(with_context(article, piece))
             metadatas.append({
                 "rule_name": article["rule_name"],
                 "rule_id": article["rule_id"],
