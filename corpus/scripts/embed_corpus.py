@@ -32,6 +32,8 @@ corpus/
 import json
 from pathlib import Path
 
+from facility_records import load_facility_file as _load_facility_file   # 시설 표 → 레코드 (업체별 묶기는 편의시설만)
+
 import chromadb
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
@@ -80,57 +82,6 @@ def _load_event_file(data: list) -> list[dict]:
             "article_title": e["content"],
             "text": text,
         })
-    return records
-
-
-def _load_facility_file(data: list) -> list[dict]:
-    """campus_facility_crawler.py 결과(캠퍼스 시설)를 공통 레코드로 변환.
-
-    편의시설류 표는 "구분"(위치/운영시간 등)을 행으로, 업체명(CU성호관점 등)을
-    칸으로 나열한 구조다. 이걸 행 그대로 한 문장으로 합치면 "CU" 같은 업체명이
-    다른 업체 이름들 틈에 묻혀 검색에서 밀리는 문제가 있었다 (실측 확인됨).
-    그래서 "구분" 칸이 있는 표는 업체별로 다시 묶어서, 업체 하나당 청크 하나
-    (그 업체의 위치·운영시간을 다 포함)로 만든다 — 업체명이 청크의 핵심 키워드가
-    되도록. "구분" 칸이 없는 표(예: 노선표처럼 행 하나가 곧 한 항목인 경우)는
-    변환할 필요가 없어 원래 방식(행 전체를 한 문장으로)을 그대로 쓴다.
-    """
-    records = []
-    for page in data:
-        for table in page.get("tables", []):
-            if table and "구분" in table[0]:
-                # 업체별로 묶기: {업체명: ["위치: ...", "운영시간: ...", ...]}
-                entities: dict[str, list[str]] = {}
-                for row in table:
-                    label = row.get("구분", "")
-                    for key, value in row.items():
-                        if key == "구분":
-                            continue
-                        entities.setdefault(key, []).append(
-                            f"{label}: {value}" if label else str(value)
-                        )
-                for entity_name, parts in entities.items():
-                    records.append({
-                        "rule_name": f"아주대학교 {page['page_name']}",
-                        "rule_id": page["page_name"],
-                        "url": page["url"],
-                        "effective_date": None,
-                        "article_no": None,
-                        "article_title": entity_name,
-                        "text": f"{entity_name} ({page['page_name']}) - " + ", ".join(parts),
-                    })
-            else:
-                # "구분" 칸이 없는 표: 기존 방식대로 행 전체를 한 문장으로
-                for row in table:
-                    sentence = ", ".join(f"{k}: {v}" for k, v in row.items())
-                    records.append({
-                        "rule_name": f"아주대학교 {page['page_name']}",
-                        "rule_id": page["page_name"],
-                        "url": page["url"],
-                        "effective_date": None,
-                        "article_no": None,
-                        "article_title": page["page_name"],
-                        "text": f"{page['page_name']} - {sentence}",
-                    })
     return records
 
 

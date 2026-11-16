@@ -39,6 +39,8 @@ from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 
+from facility_tables import parse_page_tables
+
 # 크롤링 대상 페이지들. 나중에 더 추가하고 싶으면 여기에 한 줄씩 추가.
 TARGET_PAGES = [
     {"name": "편의시설", "url": "https://www.ajou.ac.kr/kr/life/facility.do"},
@@ -59,51 +61,7 @@ def fetch_html(url: str) -> str:
     return response.text
 
 
-def get_row_cells(row) -> list[str]:
-    """행 하나에서 칸 텍스트 목록을 뽑는다. colspan(칸 병합)이 있으면
-    그 텍스트를 병합된 칸 수만큼 반복해서 넣어, 나중에 헤더와 위치가
-    어긋나지 않게 한다. (예: "24시간 운영"이 4칸을 합친 셀이면
-    ["24시간 운영", "24시간 운영", "24시간 운영", "24시간 운영"]으로 처리)"""
-    cells = []
-    for cell in row.find_all(["td", "th"]):
-        text = cell.get_text(" ", strip=True)
-        colspan = int(cell.get("colspan", 1) or 1)
-        cells.extend([text] * colspan)
-    return cells
-
-
-def parse_table(table) -> list[dict]:
-    """table 태그 하나를 [{칸이름: 값, ...}, ...] 형태로 바꾼다."""
-    rows = table.find_all("tr")
-    if not rows:
-        return []
-
-    # 첫 행에 th가 있으면 그걸 칸 이름(헤더)으로 쓰고, 없으면 칸1/칸2/...로 번호 매김
-    header_cells = rows[0].find_all("th")
-    if header_cells:
-        headers = get_row_cells(rows[0])
-        data_rows = rows[1:]
-    else:
-        headers = [f"칸{i + 1}" for i in range(len(get_row_cells(rows[0])))]
-        data_rows = rows
-
-    parsed = []
-    for row in data_rows:
-        cells = get_row_cells(row)
-        if not cells:
-            continue
-        # 칸 개수가 헤더보다 적으면(rowspan 등) 있는 만큼만 매칭
-        entry = {headers[i]: cells[i] for i in range(min(len(headers), len(cells)))}
-        parsed.append(entry)
-
-    return parsed
-
-
-def find_tables(soup: BeautifulSoup) -> list:
-    """페이지 본문 영역의 표들을 찾는다. 특정 클래스명에 의존하지 않고
-    페이지 안의 모든 table 태그를 대상으로 한다 (필요하면 나중에
-    본문 영역만 좁히도록 조정 가능)."""
-    return soup.find_all("table")
+# 표 파싱(rowspan·colspan 처리, 표 제목 수집)은 facility_tables.py에 있다.
 
 
 def crawl_page(name: str, url: str) -> dict:
@@ -118,18 +76,19 @@ def crawl_page(name: str, url: str) -> dict:
         f.write(html)
 
     soup = BeautifulSoup(html, "html.parser")
-    tables = find_tables(soup)
+    parsed_tables, titles = parse_page_tables(soup, name)
 
-    if not tables:
+    if not parsed_tables:
         print("  !! 경고: table을 찾지 못함. 페이지가 카드/리스트 형태일 수 있음. "
               "_debug_html 폴더 확인 필요")
-        return {"page_name": name, "url": url, "tables": []}
+        return {"page_name": name, "url": url, "tables": [], "table_titles": []}
 
-    parsed_tables = [parse_table(t) for t in tables]
     total_rows = sum(len(t) for t in parsed_tables)
-    print(f"  -> 표 {len(tables)}개, 총 {total_rows}행 추출")
+    print(f"  -> 표 {len(parsed_tables)}개, 총 {total_rows}행 추출")
+    for i, (rows, title) in enumerate(zip(parsed_tables, titles)):     # 제목이 맞게 잡혔는지 눈으로 확인하는 용도
+        print(f"     표 {i}: 제목 '{title}' | 행 {len(rows)}개 | 열 {list(rows[0].keys()) if rows else []}")
 
-    return {"page_name": name, "url": url, "tables": parsed_tables}
+    return {"page_name": name, "url": url, "tables": parsed_tables, "table_titles": titles}
 
 
 def main():
