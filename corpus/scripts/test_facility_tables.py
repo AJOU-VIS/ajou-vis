@@ -128,6 +128,15 @@ check("'요금 (1개월)' 같은 이름은 그대로 둔다", "요금 (1개월):
 check("링크 글자만 있는 칸은 뺀다", "다운로드 다운로드" not in gym[0] and "양식 다운로드: 체육관 사용 허가 신청서" in gym[0])
 check("이용 요금을 합친다", "이용 요금: 대관료 150,000원/1시간" in gym[1])
 
+# ── 7) 편의시설 업체 청크에 표 제목(편의점·카페·식당 구분)을 넣는다 ──
+TT = [{"page_name": "편의시설", "url": "u7", "tables": [[
+    {"구분": "위치", "CU성호관점": "성호관 1층"}, {"구분": "운영시간", "CU성호관점": "24시간"}]],
+    "table_titles": ["교내 편의점에 관한 내용"]}]
+tt = load_facility_file(TT)[0]
+check("업체 청크에 표 제목이 들어간다(편의점 검색용)", "편의점" in tt["text"] and tt["text"].startswith("CU성호관점 (편의시설 · 교내 편의점에 관한 내용) - "))
+check("업체 청크 제목(article_title)은 업체 이름 그대로", tt["article_title"] == "CU성호관점")
+check("표 제목이 없으면 기존 형식 그대로", load_facility_file(FAC)[0]["text"].startswith("CU성호관점 (편의시설) - "))
+
 bad = [n for n, ok in checks if not ok]
 print("\n전체 %d개 점검 %s" % (len(checks), "통과" if not bad else "중 실패 %d개" % len(bad)))
 sys.exit(1 if bad else 0)
