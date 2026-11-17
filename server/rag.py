@@ -53,6 +53,34 @@ _KEYWORD_PATTERN = re.compile(r"[A-Z][A-Z0-9]+")
 KEYWORD_SCORE_BONUS = 0.3
 
 
+# 규정 조문이 450자 넘게 쪼개지면 정답이 든 조각(예: 장학금 지급규칙 제10조 ①항 "복학생은 성적우수장학에 한함")이
+# 검색에서 빠지고 같은 조문의 다른 조각(②항 예외)만 걸리는 일이 있었다(B3). 걸린 조문의 나머지 조각을 함께 넘겨
+# 답이 든 조각이 빠지지 않게 한다. 지연을 키우지 않도록 붙이는 개수에 상한을 둔다.
+SIBLING_MAX_EXTRA = 2     # 한 번의 검색에서 덧붙이는 조각 수 상한
+SIBLING_LOOKAT = 3        # 상위 몇 개 결과의 이웃을 볼지
+SIBLING_SCORE_EPS = 0.001  # 이웃 점수는 원래 조각보다 살짝 낮게 둔다 (게이트가 쓰는 최고점은 그대로)
+
+
+def add_sibling_chunks(ranked, fetch_siblings, max_extra=SIBLING_MAX_EXTRA, lookat=SIBLING_LOOKAT):
+    """ranked: [(doc, meta, score, is_keyword)] 상위 결과. fetch_siblings(rule_id, article_no) -> [(doc, meta)].
+    조항 번호가 있는 규정 조각만 대상으로, 같은 조문의 아직 없는 조각을 chunk_index 순서로 뒤에 붙인다."""
+    have = {r[0] for r in ranked}
+    extras = []
+    for doc, meta, score, _kw in ranked[:lookat]:
+        if len(extras) >= max_extra:
+            break
+        article_no, rule_id = meta.get("article_no"), meta.get("rule_id")
+        if not article_no or not rule_id:
+            continue
+        sibs = sorted(fetch_siblings(rule_id, article_no), key=lambda x: x[1].get("chunk_index", 0))
+        for sdoc, smeta in sibs:
+            if sdoc in have or len(extras) >= max_extra:
+                continue
+            have.add(sdoc)
+            extras.append((sdoc, smeta, max(0.0, score - SIBLING_SCORE_EPS), False))
+    return list(ranked) + extras
+
+
 class ChromaRetriever:
     """corpus/chroma_db 규정 벡터 저장소 검색 (embed_corpus.py가 구축, BGE-M3).
 
@@ -117,6 +145,13 @@ class ChromaRetriever:
                 found[doc] = (doc, meta, score)
         return list(found.values())
 
+    def _fetch_siblings(self, rule_id: str, article_no: str):
+        got = self._collection.get(
+            where={"$and": [{"rule_id": rule_id}, {"article_no": article_no}]},
+            include=["documents", "metadatas"],
+        )
+        return list(zip(got["documents"], got["metadatas"]))
+
     def search(self, question: str, top_k: int = 5) -> list[SearchHit]:
         self._ensure_loaded()
 
@@ -141,6 +176,7 @@ class ChromaRetriever:
             merged.values(),
             key=lambda r: (not r[3], -r[2]),  # 키워드 매치 우선, 그 다음 점수 내림차순
         )[:top_k]
+        ranked = add_sibling_chunks(ranked, self._fetch_siblings)
 
         return [
             SearchHit(
