@@ -1,0 +1,834 @@
+{
+ "chosen_tau": 0.75,
+ "table": [
+  {
+   "tau": 0.45,
+   "dev": {
+    "tau": 0.45,
+    "n_need": 11,
+    "n_stand": 10,
+    "recall": 0.9090909090909091,
+    "missed": [
+     "F07"
+    ],
+    "skip_rate": 1.0,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.89
+   },
+   "test": {
+    "tau": 0.45,
+    "n_need": 9,
+    "n_stand": 10,
+    "recall": 0.8888888888888888,
+    "missed": [
+     "F14"
+    ],
+    "skip_rate": 1.0,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.89
+   },
+   "all": {
+    "tau": 0.45,
+    "n_need": 20,
+    "n_stand": 20,
+    "recall": 0.9,
+    "missed": [
+     "F07",
+     "F14"
+    ],
+    "skip_rate": 1.0,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.89
+   }
+  },
+  {
+   "tau": 0.5,
+   "dev": {
+    "tau": 0.5,
+    "n_need": 11,
+    "n_stand": 10,
+    "recall": 0.9090909090909091,
+    "missed": [
+     "F07"
+    ],
+    "skip_rate": 1.0,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.89
+   },
+   "test": {
+    "tau": 0.5,
+    "n_need": 9,
+    "n_stand": 10,
+    "recall": 0.8888888888888888,
+    "missed": [
+     "F14"
+    ],
+    "skip_rate": 1.0,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.89
+   },
+   "all": {
+    "tau": 0.5,
+    "n_need": 20,
+    "n_stand": 20,
+    "recall": 0.9,
+    "missed": [
+     "F07",
+     "F14"
+    ],
+    "skip_rate": 1.0,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.89
+   }
+  },
+  {
+   "tau": 0.55,
+   "dev": {
+    "tau": 0.55,
+    "n_need": 11,
+    "n_stand": 10,
+    "recall": 0.9090909090909091,
+    "missed": [
+     "F07"
+    ],
+    "skip_rate": 1.0,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.89
+   },
+   "test": {
+    "tau": 0.55,
+    "n_need": 9,
+    "n_stand": 10,
+    "recall": 0.8888888888888888,
+    "missed": [
+     "F14"
+    ],
+    "skip_rate": 1.0,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.89
+   },
+   "all": {
+    "tau": 0.55,
+    "n_need": 20,
+    "n_stand": 20,
+    "recall": 0.9,
+    "missed": [
+     "F07",
+     "F14"
+    ],
+    "skip_rate": 1.0,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.89
+   }
+  },
+  {
+   "tau": 0.6,
+   "dev": {
+    "tau": 0.6,
+    "n_need": 11,
+    "n_stand": 10,
+    "recall": 0.9090909090909091,
+    "missed": [
+     "F07"
+    ],
+    "skip_rate": 1.0,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.89
+   },
+   "test": {
+    "tau": 0.6,
+    "n_need": 9,
+    "n_stand": 10,
+    "recall": 0.8888888888888888,
+    "missed": [
+     "F14"
+    ],
+    "skip_rate": 1.0,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.89
+   },
+   "all": {
+    "tau": 0.6,
+    "n_need": 20,
+    "n_stand": 20,
+    "recall": 0.9,
+    "missed": [
+     "F07",
+     "F14"
+    ],
+    "skip_rate": 1.0,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.89
+   }
+  },
+  {
+   "tau": 0.65,
+   "dev": {
+    "tau": 0.65,
+    "n_need": 11,
+    "n_stand": 10,
+    "recall": 0.9090909090909091,
+    "missed": [
+     "F07"
+    ],
+    "skip_rate": 0.9,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.801
+   },
+   "test": {
+    "tau": 0.65,
+    "n_need": 9,
+    "n_stand": 10,
+    "recall": 1.0,
+    "missed": [],
+    "skip_rate": 0.9,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.801
+   },
+   "all": {
+    "tau": 0.65,
+    "n_need": 20,
+    "n_stand": 20,
+    "recall": 0.95,
+    "missed": [
+     "F07"
+    ],
+    "skip_rate": 0.9,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.801
+   }
+  },
+  {
+   "tau": 0.7,
+   "dev": {
+    "tau": 0.7,
+    "n_need": 11,
+    "n_stand": 10,
+    "recall": 0.9090909090909091,
+    "missed": [
+     "F07"
+    ],
+    "skip_rate": 0.6,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.534
+   },
+   "test": {
+    "tau": 0.7,
+    "n_need": 9,
+    "n_stand": 10,
+    "recall": 1.0,
+    "missed": [],
+    "skip_rate": 0.8,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.7120000000000001
+   },
+   "all": {
+    "tau": 0.7,
+    "n_need": 20,
+    "n_stand": 20,
+    "recall": 0.95,
+    "missed": [
+     "F07"
+    ],
+    "skip_rate": 0.7,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.623
+   }
+  },
+  {
+   "tau": 0.75,
+   "dev": {
+    "tau": 0.75,
+    "n_need": 11,
+    "n_stand": 10,
+    "recall": 1.0,
+    "missed": [],
+    "skip_rate": 0.3,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.267
+   },
+   "test": {
+    "tau": 0.75,
+    "n_need": 9,
+    "n_stand": 10,
+    "recall": 1.0,
+    "missed": [],
+    "skip_rate": 0.1,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.08900000000000001
+   },
+   "all": {
+    "tau": 0.75,
+    "n_need": 20,
+    "n_stand": 20,
+    "recall": 1.0,
+    "missed": [],
+    "skip_rate": 0.2,
+    "skipped_gold_hit": 1.0,
+    "est_saving_sec": 0.17800000000000002
+   }
+  }
+ ],
+ "rows": [
+  {
+   "id": "F01",
+   "label": "followup",
+   "split": "dev",
+   "utterance": "그럼 복학은?",
+   "signal": "꼬리질문 시작어",
+   "score": 0.4487570524215698,
+   "sources": [
+    "아주대학교 학칙",
+    "아주대학교 학칙",
+    "아주대학교 학칙"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "F02",
+   "label": "followup",
+   "split": "test",
+   "utterance": "신청 기간은 언제야?",
+   "signal": "질문 단어뿐",
+   "score": 0.19241464138031006,
+   "sources": [
+    "아주대학교 학칙",
+    "아주대학교 학칙",
+    "아주대학교 행사 일정"
+   ],
+   "gold_hit": false
+  },
+  {
+   "id": "F03",
+   "label": "followup",
+   "split": "dev",
+   "utterance": "신청은 어떻게 해?",
+   "signal": "짧은 발화",
+   "score": 0.35370486974716187,
+   "sources": [
+    "아주대학교 학칙",
+    "아주대학교 학자금대출 안내",
+    "아주대학교 유학생 학습 지원 안내"
+   ],
+   "gold_hit": false
+  },
+  {
+   "id": "F04",
+   "label": "followup",
+   "split": "test",
+   "utterance": "신청은 언제까지 해야 해?",
+   "signal": "질문 단어뿐",
+   "score": 0.6583218574523926,
+   "sources": [
+    "아주대학교 전과 안내",
+    "아주대학교 제적·유급·재입학 안내",
+    "아주대학교 수강신청 안내"
+   ],
+   "gold_hit": false
+  },
+  {
+   "id": "F05",
+   "label": "followup",
+   "split": "dev",
+   "utterance": "샤워실은?",
+   "signal": "짧은 발화",
+   "score": 0.23617374897003174,
+   "sources": [
+    "아주대학교 학칙",
+    "아주대학교 학칙",
+    "아주대학교 학칙"
+   ],
+   "gold_hit": false
+  },
+  {
+   "id": "F06",
+   "label": "followup",
+   "split": "test",
+   "utterance": "거기 몇 시까지 해?",
+   "signal": "지시어",
+   "score": 0.23835933208465576,
+   "sources": [
+    "아주대학교 학칙",
+    "아주대학교 학칙",
+    "아주대학교 학칙"
+   ],
+   "gold_hit": false
+  },
+  {
+   "id": "F07",
+   "label": "followup",
+   "split": "dev",
+   "utterance": "장학금은 어떻게 돼?",
+   "signal": null,
+   "score": 0.7212092876434326,
+   "sources": [
+    "아주대학교 장학생 선발 안내",
+    "장학금 지급규칙",
+    "장학금 지급규칙"
+   ],
+   "gold_hit": false
+  },
+  {
+   "id": "F08",
+   "label": "followup",
+   "split": "test",
+   "utterance": "환불은?",
+   "signal": "짧은 발화",
+   "score": 0.5394013524055481,
+   "sources": [
+    "아주대학교 학칙",
+    "아주대학교 학칙",
+    "아주대학교 학칙"
+   ],
+   "gold_hit": false
+  },
+  {
+   "id": "F09",
+   "label": "followup",
+   "split": "dev",
+   "utterance": "졸업생은?",
+   "signal": "짧은 발화",
+   "score": 0.3271818161010742,
+   "sources": [
+    "아주대학교 학칙",
+    "아주대학교 학칙",
+    "아주대학교 학칙"
+   ],
+   "gold_hit": false
+  },
+  {
+   "id": "F10",
+   "label": "followup",
+   "split": "test",
+   "utterance": "소프트웨어학과는?",
+   "signal": null,
+   "score": 0.433011531829834,
+   "sources": [
+    "아주대학교 학칙",
+    "아주대학교 학칙",
+    "아주대학교 학칙"
+   ],
+   "gold_hit": false
+  },
+  {
+   "id": "F11",
+   "label": "followup",
+   "split": "dev",
+   "utterance": "그럼 제적은?",
+   "signal": "꼬리질문 시작어",
+   "score": 0.5436871349811554,
+   "sources": [
+    "아주대학교 학칙",
+    "아주대학교 학칙",
+    "아주대학교 학칙"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "F12",
+   "label": "followup",
+   "split": "test",
+   "utterance": "신청 기간은?",
+   "signal": "짧은 발화",
+   "score": 0.4720383882522583,
+   "sources": [
+    "아주대학교 학칙",
+    "아주대학교 학칙",
+    "아주대학교 학칙"
+   ],
+   "gold_hit": false
+  },
+  {
+   "id": "F13",
+   "label": "followup",
+   "split": "dev",
+   "utterance": "3층은?",
+   "signal": "짧은 발화",
+   "score": 0.4252285957336426,
+   "sources": [
+    "아주대학교 학칙",
+    "아주대학교 학칙",
+    "아주대학교 학칙"
+   ],
+   "gold_hit": null
+  },
+  {
+   "id": "F14",
+   "label": "followup",
+   "split": "test",
+   "utterance": "면제되는 경우도 있어?",
+   "signal": null,
+   "score": 0.6083130836486816,
+   "sources": [
+    "아주대학교 졸업 안내",
+    "아주대학교 교내장학 안내",
+    "아주대학교 장학생 선발 안내"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "F15",
+   "label": "followup",
+   "split": "dev",
+   "utterance": "테니스는?",
+   "signal": "짧은 발화",
+   "score": 0.36282598972320557,
+   "sources": [
+    "아주대학교 학칙",
+    "아주대학교 학칙",
+    "아주대학교 학칙"
+   ],
+   "gold_hit": false
+  },
+  {
+   "id": "G01",
+   "label": "format",
+   "split": "dev",
+   "utterance": "방금 답 영어로 말해줘",
+   "signal": "지시어",
+   "score": 0.49560225009918213,
+   "sources": [
+    "아주대학교 유학생 FAQ 안내",
+    "아주대학교 유학생 학습 지원 안내",
+    "아주대학교 유학생 상담 안내"
+   ],
+   "gold_hit": null
+  },
+  {
+   "id": "G02",
+   "label": "format",
+   "split": "test",
+   "utterance": "더 짧게 말해줘",
+   "signal": "형태 변경 요청",
+   "score": 0.5066461265087128,
+   "sources": [
+    "아주대학교 학칙",
+    "아주대학교 학칙",
+    "아주대학교 학칙"
+   ],
+   "gold_hit": null
+  },
+  {
+   "id": "G03",
+   "label": "format",
+   "split": "dev",
+   "utterance": "다시 한 번 말해줘",
+   "signal": "형태 변경 요청",
+   "score": 0.41149431467056274,
+   "sources": [
+    "아주대학교 학칙",
+    "아주대학교 학칙",
+    "아주대학교 학칙"
+   ],
+   "gold_hit": null
+  },
+  {
+   "id": "G04",
+   "label": "format",
+   "split": "test",
+   "utterance": "좀 더 쉽게 설명해줘",
+   "signal": "형태 변경 요청",
+   "score": 0.3067726492881775,
+   "sources": [
+    "아주대학교 학칙",
+    "아주대학교 학칙",
+    "아주대학교 학칙"
+   ],
+   "gold_hit": null
+  },
+  {
+   "id": "G05",
+   "label": "format",
+   "split": "dev",
+   "utterance": "한국어로 다시 말해줘",
+   "signal": "형태 변경 요청",
+   "score": 0.3228200078010559,
+   "sources": [
+    "아주대학교 학칙",
+    "아주대학교 학칙",
+    "아주대학교 학칙"
+   ],
+   "gold_hit": null
+  },
+  {
+   "id": "S01",
+   "label": "standalone",
+   "split": "dev",
+   "utterance": "교내에 CU 편의점은 어디에 있어?",
+   "signal": null,
+   "score": 0.8444362245424317,
+   "sources": [
+    "아주대학교 편의시설",
+    "아주대학교 편의시설",
+    "아주대학교 편의시설"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "S02",
+   "label": "standalone",
+   "split": "test",
+   "utterance": "학사경고는 어떤 경우에 받게 돼?",
+   "signal": null,
+   "score": 0.7130777835845947,
+   "sources": [
+    "아주대학교 학칙",
+    "아주대학교 학칙",
+    "아주대학교 학칙"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "S03",
+   "label": "standalone",
+   "split": "dev",
+   "utterance": "조기졸업하려면 학점 평균이 몇 이상이어야 해?",
+   "signal": null,
+   "score": 0.750188022851944,
+   "sources": [
+    "아주대학교 졸업 안내",
+    "아주대학교 학칙",
+    "아주대학교 졸업 안내"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "S04",
+   "label": "standalone",
+   "split": "test",
+   "utterance": "개강하고 45일쯤에 휴학하면 등록금 얼마 돌려받아?",
+   "signal": null,
+   "score": 0.7060799598693848,
+   "sources": [
+    "아주대학교 휴/복학 안내",
+    "아주대학교 등록 안내",
+    "아주대학교 졸업 안내"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "S05",
+   "label": "standalone",
+   "split": "dev",
+   "utterance": "전과 신청 기간은 언제야?",
+   "signal": null,
+   "score": 0.7347868978977203,
+   "sources": [
+    "아주대학교 전과 안내",
+    "아주대학교 전과 안내",
+    "아주대학교 전과 안내"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "S06",
+   "label": "standalone",
+   "split": "test",
+   "utterance": "한 학기에 최대 몇 학점까지 신청할 수 있어?",
+   "signal": null,
+   "score": 0.7412023842334747,
+   "sources": [
+    "아주대학교 수강신청 안내",
+    "아주대학교 수강신청 안내",
+    "아주대학교 학칙"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "S07",
+   "label": "standalone",
+   "split": "dev",
+   "utterance": "기숙사 세탁실은 몇 층이야?",
+   "signal": null,
+   "score": 0.613976240158081,
+   "sources": [
+    "아주대학교 기숙사(유학생) 안내",
+    "아주대학교 기숙사(유학생) 안내",
+    "아주대학교 기숙사(유학생) 안내"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "S08",
+   "label": "standalone",
+   "split": "test",
+   "utterance": "무인증명서 발급기는 어디에 있어?",
+   "signal": null,
+   "score": 0.7016128897666931,
+   "sources": [
+    "아주대학교 증명서 발급 안내",
+    "아주대학교 증명서 발급 안내",
+    "아주대학교 증명서 발급 안내"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "S09",
+   "label": "standalone",
+   "split": "dev",
+   "utterance": "신입생 장학금을 계속 받으려면 성적이 어느 정도 돼야 해?",
+   "signal": null,
+   "score": 0.8077587485313416,
+   "sources": [
+    "아주대학교 교내장학 안내",
+    "아주대학교 유학생 장학금 안내",
+    "아주대학교 교내장학 안내"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "S10",
+   "label": "standalone",
+   "split": "test",
+   "utterance": "자퇴하고 나서 재입학은 언제부터 신청할 수 있어?",
+   "signal": null,
+   "score": 0.7481318116188049,
+   "sources": [
+    "아주대학교 제적·유급·재입학 안내",
+    "아주대학교 학칙",
+    "아주대학교 휴/복학 안내"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "S11",
+   "label": "standalone",
+   "split": "dev",
+   "utterance": "체력단련실 이용료는 얼마야?",
+   "signal": null,
+   "score": 0.7104779183864594,
+   "sources": [
+    "아주대학교 체육시설",
+    "아주대학교 체육시설",
+    "아주대학교 체육시설"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "S12",
+   "label": "standalone",
+   "split": "test",
+   "utterance": "수원역에서 학교 오는 통학버스 첫차는 몇 시야?",
+   "signal": null,
+   "score": 0.7153841555118561,
+   "sources": [
+    "아주대학교 학교버스",
+    "아주대학교 학교버스",
+    "아주대학교 학교버스"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "S13",
+   "label": "standalone",
+   "split": "dev",
+   "utterance": "8월에 졸업하면 학위수여식도 해?",
+   "signal": null,
+   "score": 0.6759091019630432,
+   "sources": [
+    "아주대학교 졸업 안내",
+    "아주대학교 학칙",
+    "아주대학교 학칙"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "S14",
+   "label": "standalone",
+   "split": "test",
+   "utterance": "등록금은 어떻게 납부해?",
+   "signal": null,
+   "score": 0.7236763536930084,
+   "sources": [
+    "아주대학교 등록금 안내",
+    "아주대학교 등록 안내",
+    "아주대학교 학칙"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "S15",
+   "label": "standalone",
+   "split": "dev",
+   "utterance": "군대 가는데 휴학은 언제 신청해야 해?",
+   "signal": null,
+   "score": 0.7469950318336487,
+   "sources": [
+    "아주대학교 휴/복학 안내",
+    "아주대학교 휴/복학 안내",
+    "아주대학교 휴/복학 안내"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "S16",
+   "label": "standalone",
+   "split": "test",
+   "utterance": "학사학위취득유예는 몇 번까지 신청할 수 있어?",
+   "signal": null,
+   "score": 0.7685243338346481,
+   "sources": [
+    "아주대학교 졸업 안내",
+    "아주대학교 졸업 안내",
+    "아주대학교 졸업 안내"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "S17",
+   "label": "standalone",
+   "split": "dev",
+   "utterance": "인터넷으로 증명서 뽑으면 한 장에 얼마야?",
+   "signal": null,
+   "score": 0.6513417959213257,
+   "sources": [
+    "아주대학교 증명서 발급 안내",
+    "아주대학교 증명서 발급 안내",
+    "아주대학교 증명서 발급 안내"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "S18",
+   "label": "standalone",
+   "split": "test",
+   "utterance": "다산관 식당은 주말에도 해?",
+   "signal": null,
+   "score": 0.6728122234344482,
+   "sources": [
+    "아주대학교 편의시설",
+    "아주대학교 편의시설",
+    "아주대학교 편의시설"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "S19",
+   "label": "standalone",
+   "split": "dev",
+   "utterance": "비자 연장은 어떻게 해?",
+   "signal": null,
+   "score": 0.6514700651168823,
+   "sources": [
+    "아주대학교 비자·체류 안내",
+    "아주대학교 비자·체류 안내",
+    "아주대학교 비자·체류 안내"
+   ],
+   "gold_hit": true
+  },
+  {
+   "id": "S20",
+   "label": "standalone",
+   "split": "test",
+   "utterance": "기숙사 봄축제는 언제 해?",
+   "signal": null,
+   "score": 0.6358479261398315,
+   "sources": [
+    "아주대학교 기숙사(유학생) 안내",
+    "아주대학교 교내장학 안내",
+    "아주대학교 교내장학 안내"
+   ],
+   "gold_hit": true
+  }
+ ]
+}
