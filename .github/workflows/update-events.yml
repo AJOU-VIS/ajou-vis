@@ -1,0 +1,58 @@
+# 학사일정(events.json) 자동 갱신
+# 매일 한국 시간 05:00에 학교 캘린더를 크롤링해 corpus/raw/events.json을 갱신하고, 바뀐 게 있으면 PR을 연다.
+# 필요 설정: 저장소 Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests" 체크
+name: update-events
+
+on:
+  schedule:
+    - cron: "0 20 * * *"      # UTC 20:00 = 한국 시간 다음날 05:00
+  workflow_dispatch:           # Actions 탭에서 수동 실행
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 크롤러 의존성 설치
+        run: pip install selenium beautifulsoup4
+
+      - name: 로직 점검 (학교 사이트 접속 없음)
+        run: python corpus/scripts/test_event_calendar.py
+
+      - name: 학사일정 크롤링 (기존 일정에 더함)
+        working-directory: .
+        run: python corpus/scripts/event_calendar_crawler.py --out corpus/raw/events.json --weeks 20
+
+      # 크롤링이 실패하거나 구조가 달라졌을 때 원인을 볼 수 있도록 HTML을 남긴다
+      - name: 디버그 HTML 보관
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: calendar-debug-html
+          path: output/_debug_html
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: 변경이 있으면 PR 열기
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: bot/update-events
+          base: main
+          add-paths: corpus/raw/events.json
+          commit-message: "chore: 학사일정 자동 갱신"
+          title: "chore: 학사일정 자동 갱신"
+          body: |
+            학교 캘린더를 다시 크롤링해 `corpus/raw/events.json`을 갱신했습니다.
+            지난 일정은 지우지 않고 새 일정만 더합니다.
+            합친 뒤 벡터 DB를 다시 만들어야 서버에 반영됩니다. (Colab 5번 셀 → 6번 셀)
+          delete-branch: true

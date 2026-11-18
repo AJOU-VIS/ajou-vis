@@ -35,10 +35,12 @@ python event_calendar_crawler.py
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
+import sys
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from selenium import webdriver
@@ -47,11 +49,12 @@ from bs4 import BeautifulSoup
 
 BASE_URL = "https://www.ajou.ac.kr/kr/ajou/notice-calendar.do"
 
-# 크롤링을 시작할 날짜 (이 날짜가 포함된 주부터 시작해서 "다음" 버튼을 따라감)
-START_DATE = "2026-09-27"
-# 몇 구간(주)까지 이어서 가져올지. 너무 크게 잡으면 오래 걸리고 서버에 부담을 주니
-# 처음엔 작게(4주 정도) 테스트해보고 필요하면 늘리는 걸 추천.
-MAX_PERIODS = 4
+# 기본값: 오늘(한국 시간) 기준 1주 전 주부터 20주(약 5개월)를 가져온다.
+# 실행할 때 --start, --weeks 로 바꿀 수 있다. (자동 갱신은 GitHub Actions가 매일 실행)
+DEFAULT_WEEKS = 20
+LOOKBACK_DAYS = 7          # 지금 진행 중인 긴 일정(예: 시작이 지난주)을 놓치지 않으려고 하루 7일 전부터
+KST = timezone(timedelta(hours=9))
+DEFAULT_OUT = Path("output/events.json")
 
 DATE_ROW_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}\([월화수목금토일]\)$")
 
@@ -142,7 +145,36 @@ def parse_events_from_day(day_container) -> list[dict]:
     return events
 
 
-def crawl_events() -> list[dict]:
+def default_start_date(now: datetime | None = None) -> str:
+    """오늘(한국 시간)에서 LOOKBACK_DAYS 전 날짜를 YYYY-MM-DD로 돌려준다."""
+    now = now or datetime.now(KST)
+    return (now - timedelta(days=LOOKBACK_DAYS)).strftime("%Y-%m-%d")
+
+
+def event_key(e: dict) -> tuple:
+    return (e.get("category"), e.get("content"), e.get("period"))
+
+
+def dedupe(events: list[dict]) -> list[dict]:
+    """(구분, 내용, 기간)이 같으면 같은 일정으로 보고 하나만 남긴다 (날짜 필드는 버림)."""
+    unique = {}
+    for e in events:
+        k = event_key(e)
+        if k not in unique:
+            unique[k] = {"category": e.get("category"), "content": e.get("content"),
+                         "period": e.get("period")}
+    return list(unique.values())
+
+
+def merge_events(old: list[dict], new: list[dict]) -> list[dict]:
+    """기존 파일의 일정을 지우지 않고 새 일정을 더한다.
+    학교 페이지는 조회한 기간의 일정만 보여 주므로, 지난 일정(예: 중간시험)은 다음 갱신 때 사라진다.
+    평가 문항·시연에서 '이번 학기 중간시험 언제였지?' 같은 질문이 계속 맞도록 지난 일정은 남긴다.
+    같은 (구분, 내용, 기간)은 하나로 합친다. 기존 순서를 유지하고 새 항목은 뒤에 붙인다."""
+    return dedupe(list(old) + list(new))
+
+
+def crawl_events(start_date: str, periods: int) -> list[dict]:
     """사이트의 '다음' 버튼을 믿고 따라가면, 실제로 화면에 보여준 기간(예: 7일)과
     버튼이 가리키는 다음 시작일 사이에 며칠씩 비는 구간(gap)이 생기는 걸
     확인했다 (예: 09-27~10-03을 보여주고 '다음'은 10-10을 가리킴 -> 10-04~10-09 누락).
@@ -152,11 +184,11 @@ def crawl_events() -> list[dict]:
     all_events = []
 
     try:
-        start = datetime.strptime(START_DATE, "%Y-%m-%d")
-        for i in range(MAX_PERIODS):
+        start = datetime.strptime(start_date, "%Y-%m-%d")
+        for i in range(periods):
             current_date = (start + timedelta(days=7 * i)).strftime("%Y-%m-%d")
 
-            print(f"[{i + 1}/{MAX_PERIODS}] {current_date} 기준 구간 조회 중...")
+            print(f"[{i + 1}/{periods}] {current_date} 기준 구간 조회 중...")
             html = fetch_rendered_html(driver, current_date)
             soup = BeautifulSoup(html, "html.parser")
 
@@ -182,31 +214,38 @@ def crawl_events() -> list[dict]:
     return all_events
 
 
-def main():
-    events = crawl_events()
+def main(argv=None):
+    ap = argparse.ArgumentParser(description="아주대 학사일정(캘린더) 크롤러")
+    ap.add_argument("--start", default="", help="조회 시작 날짜 YYYY-MM-DD (기본: 오늘 7일 전, 한국 시간)")
+    ap.add_argument("--weeks", type=int, default=DEFAULT_WEEKS, help="가져올 주 수 (기본 %d)" % DEFAULT_WEEKS)
+    ap.add_argument("--out", default=str(DEFAULT_OUT), help="저장 경로 (기본 output/events.json)")
+    ap.add_argument("--no-merge", action="store_true",
+                    help="기존 파일을 무시하고 새로 가져온 일정만 저장 (기본은 기존 일정에 더함)")
+    args = ap.parse_args(argv)
 
-    # 같은 일정이 기간 내 매일 반복 표시되므로, (구분, 내용, 기간)이 같으면
-    # 같은 일정으로 보고 하나만 남긴다. 날짜(date)는 "오늘 기준 조회 시작일"일
-    # 뿐 실제 시작일이 아닐 수 있어 최종 결과에서는 제외하고, period가
-    # 시작~종료를 이미 다 담고 있으므로 그걸 기준으로 삼는다.
-    unique = {}
-    for e in events:
-        key = (e["category"], e["content"], e["period"])
-        if key not in unique:
-            unique[key] = {
-                "category": e["category"],
-                "content": e["content"],
-                "period": e["period"],
-            }
-    result = list(unique.values())
+    start_date = args.start or default_start_date()
+    events = crawl_events(start_date, args.weeks)
 
-    out_dir = Path("output")
-    out_dir.mkdir(exist_ok=True)
-    out_path = out_dir / "events.json"
+    # 같은 일정이 기간 내 매일 반복 표시되므로, (구분, 내용, 기간)이 같으면 하나만 남긴다.
+    new = dedupe(events)
+    if not new:
+        # 접속이 막혔거나 페이지 구조가 바뀐 경우. 기존 파일을 빈 값으로 덮어쓰지 않는다.
+        print("\n[실패] 일정을 하나도 가져오지 못했습니다. 기존 파일은 그대로 둡니다.", file=sys.stderr)
+        sys.exit(1)
+
+    out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    old = []
+    if out_path.exists() and not args.no_merge:
+        old = json.loads(out_path.read_text(encoding="utf-8"))
+    result = new if args.no_merge else merge_events(old, new)
+
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
+        f.write("\n")
 
-    print(f"\n[전체 완료] 총 {len(result)}개 일정(중복 제거 후) 저장 -> {out_path}")
+    print(f"\n[전체 완료] 새로 가져온 일정 {len(new)}개, 기존 {len(old)}개 -> "
+          f"저장 {len(result)}개 -> {out_path}")
 
 
 if __name__ == "__main__":
