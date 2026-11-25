@@ -29,6 +29,7 @@ import prompts_loader
 import rewriter
 import sentence_limit
 import smalltalk
+import stt_fix
 import realtime
 import turns
 from rag import ChromaRetriever, StubRetriever, format_context
@@ -142,9 +143,15 @@ def turns_latest(after: int = 0):
 
 @app.post("/v1/chat/completions")
 def chat_completions(req: ChatRequest):
-    history, utterance = _split_request(req.messages)
-    if not utterance:
+    history, heard = _split_request(req.messages)
+    if not heard:
         return _respond("질문을 인식하지 못했어요. 다시 말씀해 주세요!", req)
+
+    # 음성 인식이 반복해서 틀리게 적는 말("시유" → CU, "이사학번" → 24학번)은 맨 먼저 고친다 (server/stt_fix.py).
+    # 대화기록에도 같은 말이 남아 있으므로 함께 고쳐야 꼬리질문 재작성이 고친 말을 본다.
+    utterance, history = stt_fix.fix(heard), stt_fix.fix(history)
+    if utterance != heard:
+        print(f"[stt_fix] {heard!r} → {utterance!r}", flush=True)
 
     lang = prompts_loader.detect_lang(utterance)
     turn = {"lang": lang, "question": utterance}
