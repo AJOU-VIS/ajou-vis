@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>치토 · 아주대학교 음성 AI 비서</title>
+<style>
+  :root {
+    --bg: #f6f8fc; --card: #ffffff; --ink: #10182b; --ink2: #4a5670; --line: #dde3ef;
+    --accent: #0b4da2; --accent-ink: #ffffff; --soft: #e9f0fb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1422; --card: #172033; --ink: #eef2fa; --ink2: #aab5cc; --line: #2a3650;
+      --accent: #6ea4ff; --accent-ink: #0b1220; --soft: #1e2a44;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    line-height: 1.6; -webkit-text-size-adjust: 100%;
+  }
+  main { max-width: 560px; margin: 0 auto; padding: 32px 16px 48px; }
+  .eyebrow { color: var(--ink2); font-size: 14px; margin: 0 0 4px; }
+  h1 { font-size: 30px; line-height: 1.25; margin: 0 0 8px; text-wrap: balance; }
+  .lead { color: var(--ink2); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+  .card h2 { font-size: 17px; margin: 0 0 8px; }
+  .status { background: var(--soft); border-color: transparent; }
+  .status p { margin: 0; }
+  .status .when { font-weight: 700; font-size: 18px; margin-bottom: 4px; }
+  .btn {
+    display: block; width: 100%; text-align: center; text-decoration: none; font-weight: 700; font-size: 18px;
+    background: var(--accent); color: var(--accent-ink); border-radius: 12px; padding: 16px; margin-top: 16px;
+  }
+  .btn.ghost { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+  .btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+  ol, ul { margin: 0; padding-left: 20px; }
+  li { margin: 4px 0; }
+  .q { list-style: none; padding: 0; }
+  .q li { background: var(--soft); border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
+  footer { color: var(--ink2); font-size: 13px; margin-top: 24px; }
+  footer a { color: inherit; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">아주대학교 음성 AI 비서 · Ajou University voice assistant</p>
+  <h1>치토에게 학교생활을 물어보세요</h1>
+  <p class="lead">말이나 글로 물으면, 학칙과 학교 안내 문서에서 근거를 찾아 출처와 함께 답해요.</p>
+
+  <section class="card status" aria-live="polite">
+    <div id="closed">
+      <p class="when">지금은 준비 중이에요</p>
+      <p>12월 9일 성과발표회 전시 시간에 이 페이지에서 치토와 직접 대화할 수 있어요.</p>
+      <p style="margin-top:6px">Chito is getting ready. Come back during the exhibition on December 9.</p>
+    </div>
+    <div id="open" hidden>
+      <p class="when">지금 치토와 대화할 수 있어요</p>
+      <p>아래 버튼을 누르면 대화 화면이 열려요. Tap the button to start.</p>
+      <a class="btn" id="demo" href="#">치토와 대화하기</a>
+    </div>
+    <a class="btn ghost" id="video" href="#" hidden>시연 영상 보기</a>
+  </section>
+
+  <section class="card">
+    <h2>이렇게 써 보세요</h2>
+    <ol>
+      <li>Chrome이나 Safari에서 열어 주세요. 메신저 앱 안에서 열면 마이크가 안 될 수 있어요.</li>
+      <li>마이크를 허용하고 말로 묻거나, 주변이 시끄러우면 글로 물어보세요.</li>
+      <li>한국어와 영어 모두 돼요.</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>이런 걸 물어볼 수 있어요</h2>
+    <ul class="q">
+      <li>휴학은 최대 몇 년까지 할 수 있어?</li>
+      <li>학사경고 기준이 뭐야?</li>
+      <li>도서관 좌석 지금 몇 자리 남았어?</li>
+      <li>How do I apply for a leave of absence?</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>팀 AJOU-VIS · 2026-2학기 파란학기제 도전과제 · <a href="https://github.com/AJOU-VIS/ajou-vis">GitHub</a></p>
+    <p>학사·행정 안내용 시연이에요. 실제 신청이나 개인정보 조회는 학교 공식 창구를 이용해 주세요.</p>
+  </footer>
+</main>
+
+<script>
+  // 시연 서버를 켰을 때 주소를 넣는다. 비워 두면 "준비 중"으로 보인다.
+  //   DEMO_URL  치토 웹 화면 주소 (Colab 8-1번 셀이 출력하는 고정 주소)
+  //   VIDEO_URL 시연 영상 주소 (서버가 꺼져 있을 때도 볼 수 있게)
+  const DEMO_URL = "";
+  const VIDEO_URL = "";
+
+  if (DEMO_URL) {
+    document.getElementById("closed").hidden = true;
+    document.getElementById("open").hidden = false;
+    document.getElementById("demo").href = DEMO_URL;
+  }
+  if (VIDEO_URL) {
+    const v = document.getElementById("video");
+    v.href = VIDEO_URL; v.hidden = false;
+  }
+</script>
+</body>
+</html>
